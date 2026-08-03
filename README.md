@@ -2,6 +2,7 @@
 
 Cyberpunk 2020 combat tracker for Obsidian. This repository contains the plugin source; architecture is defined in `Architecture.md` (see your vault copy).
 
+**Repository:** https://github.com/Ordo-bs/cp-combat-tracker
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) 18+

@@ -3,6 +3,7 @@
 **Last updated:** 2026-08-03  
 **Architecture spec:** `C:\Users\ordob\Documents\Sync_vault\Cyberpunk\CPxObsidian Plug-in v2\Architecture.md`  
 **Dev repo:** `C:\CPxObsidian Plug-in v2`  
+**GitHub:** https://github.com/Ordo-bs/cp-combat-tracker  
 **Vault plugin junction:** `C:\Users\ordob\Documents\Sync_vault\.obsidian\plugins\cp-combat-tracker` → dev folder  
 
 **Build:** `npm run build`  
