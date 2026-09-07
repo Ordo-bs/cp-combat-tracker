@@ -129,12 +129,10 @@ src/
 
 ## Progress
 
-See [`PROGRESS.md`](PROGRESS.md) for implementation status (steps 1–9 complete; integration tests and UI polish remaining).
+See [`PROGRESS.md`](PROGRESS.md) for implementation status (steps 1–9 complete; integration tests, UI polish, and the Hit/Damage Calculator remaining).
 
 ## Next implementation steps
 
-Per `Architecture.md` §396:
-
 1. Integration tests
 2. UI polishing
-3. Hit/Damage Calculator (future milestone; requires `damage-engine.md` spec)
+3. Hit/Damage Calculator — planned in [`docs/hit-damage-calculator-implementation-plan.md`](docs/hit-damage-calculator-implementation-plan.md) (Damage Engine spec + architecture reconciliation; plugs into existing CombatSheet, action, and persistence seams)
