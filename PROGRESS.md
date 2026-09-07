@@ -1,6 +1,6 @@
 # CPxObsidian Combat Tracker — Progress Note
 
-**Last updated:** 2026-08-03  
+**Last updated:** 2026-09-07  
 **Architecture spec:** `C:\Users\ordob\Documents\Sync_vault\Cyberpunk\CPxObsidian Plug-in v2\Architecture.md`  
 **Dev repo:** `C:\CPxObsidian Plug-in v2`  
 **GitHub:** https://github.com/Ordo-bs/cp-combat-tracker  
@@ -27,7 +27,7 @@
 | 9 | Runtime actions | ✅ Done |
 | 10 | Integration tests | ⬜ **Next** |
 | 11 | UI polishing | ⬜ Pending |
-| 12 | Hit/Damage Calculator | ⬜ Future milestone |
+| 12 | Hit/Damage Calculator | ✅ Implemented — see [`docs/hit-damage-calculator-implementation-plan.md`](docs/hit-damage-calculator-implementation-plan.md) |
 
 ---
 
@@ -134,27 +134,38 @@
 
 ---
 
-### Step 12 — Hit/Damage Calculator ⬜ FUTURE MILESTONE
+### Step 12 — Hit/Damage Calculator ✅ IMPLEMENTED
 
-**Goal:** Replace placeholders with real Cyberpunk 2020 combat resolution.
+**Goal:** Replace placeholders with real Cyberpunk 2020 NPC/Vehicle hit and damage resolution.
 
-**Architecture intent (§362, §398):**
-- New spec: **`damage-engine.md`** (peer document, not yet written)
-- Plugs into existing seams — **no structural refactor** of plugin architecture
+**Working plan:** [`docs/hit-damage-calculator-implementation-plan.md`](docs/hit-damage-calculator-implementation-plan.md)
+
+The Damage Engine spec is an **extension** of the existing architecture, not a replacement. Encounter persistence, CombatSheet components, `RuleTables` / `IDamageThresholdService`, `CombatAction` / `CombatActionExecutor`, and round-wrap initiative stay as they are. The engine adds hit resolution, cybernetics, Acid/Fire `OngoingEffect`s, pending-effect `Next` gating, and the inline calculator UI.
+
+**Implementation phases (see the plan for details):**
+
+0. Domain extensions + persistence migration (`isDead`, Hard SP, `ongoingEffects`; drop `AcidTracker` / `FireTracker`)
+1. Canonical Regular-hit pipeline + transactional commit
+2. Damage-type registry and remaining types
+3. Cybernetics + Vehicles
+4. Stun / Death / Pain Editor / Taser
+5. Ongoing effects + combined `Next` workflow
+6. Calculator / menus / result messages / compact status
+7. Wiring, events, logging
 
 **Integration points already reserved:**
 
-| Seam | Current | Future |
+| Seam | Current | Planned |
 |------|---------|--------|
-| `OpenHitCalculatorAction` | Expand card + placeholder | Launch real calculator UI |
-| `IHitResolver` | Placeholder | Hit resolution pipeline |
-| `IDamageResolver` | Placeholder | Damage application |
-| `IArmourResolver`, `IBodyLocationResolver` | Placeholder | SP/armour/location rules |
-| `IStunResolver`, `IDeathResolver` | Minimal d10 vs save | Full rule-engine checks |
-| Expanded card panel | “Coming in next milestone” | Hit/Damage UI |
-| `CombatAction` layer | 5 actions | Additional actions (ApplyHit, etc.) |
+| `OpenHitCalculatorAction` | Expand card + placeholder | Keep as UI-only expand; add `ResolveHitAction` for Apply |
+| `IHitResolver` | Placeholder | Leave unused (attack rolls are out of scope) |
+| `IDamageResolver` / `IDamageEngine` | Placeholder | Real engine under `src/services/damage/` |
+| `IArmourResolver`, `IBodyLocationResolver` | Placeholder | Used inside the canonical pipeline |
+| `IStunResolver`, `IDeathResolver` | Minimal d10 vs save | Shared `SaveResolver` (`roll > save` ⇒ failure) |
+| Expanded card panel | “Coming in next milestone” | `HitCalculator`, Stun/Death menus, pending effects |
+| `CombatAction` layer | 5 actions | Add `ResolveHit`, `ApplyOngoingEffects`; extend Stun/Death |
 
-**Explicitly deferred (Architecture §394):** armour ablation, critical injuries, weapon profiles, combat log, undo/redo, template library scan, multi-encounter, etc.
+**Explicitly out of scope:** attack rolls, PC damage, weapon inventory, combat-log persistence, undo/redo, full critical tables, EMP/Sandevistan/Adrenal Booster mechanics.
 
 ---
 
@@ -190,7 +201,7 @@ src/
 
 ## Suggested resume prompt
 
-> Continue CPxObsidian Combat Tracker from `PROGRESS.md`. Steps 1–9 are done. Proceed with **Step 10: integration tests** per Architecture §387 and §396.
+> Continue CPxObsidian Combat Tracker from `PROGRESS.md`. Steps 1–9 are done. For the Hit/Damage Calculator, follow [`docs/hit-damage-calculator-implementation-plan.md`](docs/hit-damage-calculator-implementation-plan.md) starting at Phase 0.
 
 ---
 
@@ -201,6 +212,5 @@ Still outstanding after steps 10–11:
 - [ ] Integration tests for repository, actions, queue rebuild, encounter lifecycle  
 - [ ] Manual testing confirms stable combat flow for PCs, NPCs, Vehicles  
 - [ ] All practical acceptance criteria have automated tests  
-- [ ] Hit/Damage remains placeholder until step 12 / `damage-engine.md`  
 
-Step 12 is a **separate milestone** and is not required for a functional Release 1 tracker without full combat resolution.
+Step 12 (Hit/Damage Calculator) is a **separate milestone**. Implement it from [`docs/hit-damage-calculator-implementation-plan.md`](docs/hit-damage-calculator-implementation-plan.md); it is not required for a functional tracker without combat resolution.

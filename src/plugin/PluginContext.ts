@@ -1,8 +1,7 @@
 import type { Plugin } from "obsidian";
 import { CombatActionExecutor } from "../actions/CombatActionExecutor";
 import type { CombatActionContext } from "../actions/CombatActionContext";
-import { PlaceholderDeathResolver } from "../domain/rules/resolvers/DeathResolver";
-import { PlaceholderStunResolver } from "../domain/rules/resolvers/StunResolver";
+import { SaveResolver } from "../domain/rules/resolvers/SaveResolver";
 import { EventDispatcher } from "../events/EventDispatcher";
 import { EncounterRepository } from "../infrastructure/repository/EncounterRepository";
 import type { IEncounterRepository } from "../infrastructure/repository/IEncounterRepository";
@@ -14,6 +13,8 @@ import { EncounterService } from "../services/EncounterService";
 import { InitiativeService } from "../services/InitiativeService";
 import { TemplateService } from "../services/TemplateService";
 import { ValidationService } from "../services/ValidationService.impl";
+import { DamageEngine } from "../services/damage/DamageEngine";
+import { DamageTypeRegistry } from "../services/damage/DamageTypeRegistry";
 import type { ILogger } from "../util/logger";
 import { ConsoleLogger } from "../util/logger";
 
@@ -33,8 +34,10 @@ export class PluginContext {
   readonly combatService: CombatService;
   readonly templateService: TemplateService;
   readonly actionExecutor: CombatActionExecutor;
-  readonly stunResolver: PlaceholderStunResolver;
-  readonly deathResolver: PlaceholderDeathResolver;
+  readonly stunResolver: SaveResolver;
+  readonly deathResolver: SaveResolver;
+  readonly damageTypeRegistry: DamageTypeRegistry;
+  readonly damageEngine: DamageEngine;
 
   constructor(plugin: Plugin) {
     this.logger = new ConsoleLogger();
@@ -50,6 +53,13 @@ export class PluginContext {
       this.validationService,
       this.dispatcher,
     );
+    this.damageTypeRegistry = new DamageTypeRegistry();
+    this.damageEngine = new DamageEngine(
+      this.damageTypeRegistry,
+      this.diceService,
+      this.damageThresholdService,
+      this.logger,
+    );
     this.combatService = new CombatService(
       this.repository,
       this.encounterService,
@@ -57,10 +67,11 @@ export class PluginContext {
       this.validationService,
       this.factory,
       this.dispatcher,
+      this.damageEngine,
     );
     this.templateService = new TemplateService(this.factory);
-    this.stunResolver = new PlaceholderStunResolver();
-    this.deathResolver = new PlaceholderDeathResolver();
+    this.stunResolver = new SaveResolver();
+    this.deathResolver = new SaveResolver();
     this.actionExecutor = new CombatActionExecutor(this.createActionContext());
   }
 

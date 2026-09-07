@@ -1,10 +1,12 @@
 import { Notice } from "obsidian";
 import type { UiElement } from "../types";
 import {
+  getActiveSheet,
   getOrderedCombatants,
   hasCombatants,
   isQueueDirty,
 } from "../selectors/encounterSelectors";
+import { hasUnresolvedPendingEffects } from "../../domain/damage/sheetEffects";
 import { useEncounter, usePluginContext } from "../context/EncounterContext";
 import { useObsidianApp } from "../context/AppContext";
 import { openDraftCombatSheetEditor, openNewCombatSheetEditor } from "../../infrastructure/obsidian/openCombatSheetEditor";
@@ -15,6 +17,8 @@ export function SidebarToolbar(): UiElement {
   const { initiativeService, encounterService, templateService } = usePluginContext();
 
   const combatantsExist = hasCombatants(encounter);
+  const active = getActiveSheet(encounter);
+  const pendingEffects = active ? hasUnresolvedPendingEffects(active) : false;
 
   const handleAdd = (): void => {
     void openNewCombatSheetEditor(app);
@@ -34,7 +38,10 @@ export function SidebarToolbar(): UiElement {
   };
 
   const handleNext = (): void => {
-    initiativeService.nextTurn();
+    const advanced = initiativeService.nextTurn();
+    if (!advanced) {
+      new Notice("Resolve pending effects before advancing.");
+    }
   };
 
   const handleClear = (): void => {
@@ -52,7 +59,7 @@ export function SidebarToolbar(): UiElement {
       <button type="button" onClick={handlePrevious} disabled={!combatantsExist}>
         Previous
       </button>
-      <button type="button" onClick={handleNext} disabled={!combatantsExist}>
+      <button type="button" onClick={handleNext} disabled={!combatantsExist || pendingEffects} title={pendingEffects ? "Resolve pending effects first." : undefined}>
         Next
       </button>
       <button type="button" onClick={handleClear} disabled={!combatantsExist}>

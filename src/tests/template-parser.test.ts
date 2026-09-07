@@ -164,6 +164,21 @@ initiativeModifier: 5
     expect(sheet.runtimeMetadata.templateId).toBe(FILE);
     if (sheet.sheetType === CombatSheetType.NPC) {
       expect(sheet.body.find((p) => p.location === BodyLocation.HEAD)).toBeDefined();
+      expect(sheet.damage.ongoingEffects).toEqual([]);
+      expect(sheet.runtimeMetadata.activationSequence).toBe(0);
+    }
+  });
+
+  it("parses isHardSp on body parts", () => {
+    const result = parse(`\`\`\`combat-sheet
+type: npc
+name: Hard Armor
+body.torso.sp: 12
+body.torso.isHardSp: true
+\`\`\``);
+    expect(result.success).toBe(true);
+    if (result.template?.sheetType === CombatSheetType.NPC) {
+      expect(result.template.body[BodyLocation.TORSO].isHardSp).toBe(true);
     }
   });
 });

@@ -2,8 +2,7 @@ import { Notice } from "obsidian";
 import { useState } from "react";
 import { ActionType, createAction } from "../../actions/ActionRegistry";
 import type { CombatActionResult } from "../../actions/CombatActionResult";
-import type { SaveResolutionResult } from "../../domain/rules/resolvers/StunResolver";
-import { isNpcSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
+import { isNpcSheet, isVehicleSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
 import { CloneInitiativeOption } from "../../services/CombatSheetFactory";
 import { openExistingCombatSheetEditor } from "../../infrastructure/obsidian/openCombatSheetEditor";
 import { useObsidianApp } from "../context/AppContext";
@@ -26,9 +25,18 @@ function runAction(
 interface NpcControlsProps {
   sheet: CombatSheet;
   onOpenHitCalculator: () => void;
+  onOpenStun: () => void;
+  onOpenDeath: () => void;
+  isDead: boolean;
 }
 
-export function NpcControls({ sheet, onOpenHitCalculator }: NpcControlsProps): UiElement | null {
+export function NpcControls({
+  sheet,
+  onOpenHitCalculator,
+  onOpenStun,
+  onOpenDeath,
+  isDead,
+}: NpcControlsProps): UiElement | null {
   const { actionExecutor } = usePluginContext();
 
   if (!isNpcSheet(sheet)) {
@@ -36,16 +44,6 @@ export function NpcControls({ sheet, onOpenHitCalculator }: NpcControlsProps): U
   }
 
   const canConsume = (amount: number): boolean => sheet.ammo.remainingShots >= amount;
-
-  const handleSaveNotice = (label: string, result: CombatActionResult<unknown>): void => {
-    const data = result.data as SaveResolutionResult | undefined;
-    if (!data) {
-      return;
-    }
-    const { roll, threshold, succeeded } = data;
-    const outcome = succeeded ? "passed" : "failed";
-    new Notice(`${label} save: rolled ${roll} vs ${threshold} — ${outcome}.`);
-  };
 
   return (
     <div className="cp-card__npc-controls">
@@ -123,29 +121,45 @@ export function NpcControls({ sheet, onOpenHitCalculator }: NpcControlsProps): U
         >
           Hit
         </button>
-        <button
-          type="button"
-          onClick={() =>
-            runAction(
-              actionExecutor.execute.bind(actionExecutor),
-              { type: ActionType.PerformStunSave, combatantId: sheet.id },
-              (result) => handleSaveNotice("Stun", result),
-            )
-          }
-        >
+        <button type="button" onClick={onOpenStun} disabled={isDead} title={isDead ? "Target is dead." : undefined}>
           Stun
         </button>
+        <button type="button" onClick={onOpenDeath} disabled={isDead} title={isDead ? "Target is dead." : undefined}>
+          Death
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface VehicleControlsProps {
+  sheet: CombatSheet;
+  onOpenHitCalculator: () => void;
+}
+
+export function VehicleControls({ sheet, onOpenHitCalculator }: VehicleControlsProps): UiElement | null {
+  const { actionExecutor } = usePluginContext();
+  if (!isVehicleSheet(sheet)) {
+    return null;
+  }
+  return (
+    <div className="cp-card__npc-controls">
+      <div className="cp-card__ammo-summary">
+        SP {sheet.sp} · SDP {sheet.sdp}
+        {sheet.isDestroyed ? " · Destroyed" : ""}
+      </div>
+      <div className="cp-card__button-row">
         <button
           type="button"
           onClick={() =>
             runAction(
               actionExecutor.execute.bind(actionExecutor),
-              { type: ActionType.PerformDeathSave, combatantId: sheet.id },
-              (result) => handleSaveNotice("Death", result),
+              { type: ActionType.OpenHitCalculator, combatantId: sheet.id },
+              () => onOpenHitCalculator(),
             )
           }
         >
-          Death
+          Hit
         </button>
       </div>
     </div>

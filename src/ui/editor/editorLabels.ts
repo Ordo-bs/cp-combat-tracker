@@ -30,15 +30,11 @@ export const STATUS_LABELS: Record<StatusType, string> = {
 export function statusesForSheetType(type: CombatSheetType): StatusType[] {
   switch (type) {
     case CombatSheetType.PC:
+      return [StatusType.STUNNED, StatusType.MARKED];
     case CombatSheetType.NPC:
-      return [
-        StatusType.STUNNED,
-        StatusType.ON_FIRE,
-        StatusType.ACID,
-        StatusType.MARKED,
-      ];
+      return [StatusType.STUNNED, StatusType.MARKED];
     case CombatSheetType.VEHICLE:
-      return [StatusType.ACID, StatusType.MARKED, StatusType.DESTROYED];
+      return [StatusType.MARKED];
   }
 }
 

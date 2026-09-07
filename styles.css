@@ -184,6 +184,57 @@
   font-style: italic;
 }
 
+.cp-hit-calculator,
+.cp-inline-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.cp-hit-calculator__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: var(--font-ui-small);
+}
+
+.cp-hit-calculator__field input,
+.cp-hit-calculator__field select {
+  width: 100%;
+}
+
+.cp-resolution-message pre {
+  margin: 0.35rem 0 0;
+  white-space: pre-wrap;
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-smaller);
+}
+
+.cp-resolution-message__reminder {
+  margin: 0.25rem 0 0;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-warning);
+}
+
+.cp-pending-effects {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.cp-pending-effects__chips,
+.cp-card__part-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.cp-card__part-flags {
+  margin-top: 0.25rem;
+}
+
 .cp-combat-sheet-editor-view {
   height: 100%;
   overflow-y: auto;
