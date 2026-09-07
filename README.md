@@ -78,7 +78,9 @@ Re-copy (or rebuild in place) after changes if not using a junction.
 4. Enable **CP Combat Tracker**.
 5. Click the **swords** ribbon icon, or run command **Open Combat Tracker sidebar**.
 
-You should see the Combat Tracker sidebar with placeholder toolbar buttons and an empty encounter message.
+You should see the Combat Tracker sidebar with toolbar buttons and an empty encounter message.
+
+For a first-time install on a new machine, plus happy-path testing checklists, see [`docs/local-install-and-manual-testing.md`](docs/local-install-and-manual-testing.md).
 
 ## Project layout
 
