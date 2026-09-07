@@ -1,22 +1,4 @@
-export interface AcidTracker {
-  active: boolean;
-  remainingRounds: number;
-  pendingDamage: number;
-}
-
-export interface FireTracker {
-  active: boolean;
-  remainingRounds: number;
-  pendingDamage: number;
-}
-
-export function createAcidTracker(): AcidTracker {
-  return { active: false, remainingRounds: 0, pendingDamage: 0 };
-}
-
-export function createFireTracker(): FireTracker {
-  return { active: false, remainingRounds: 0, pendingDamage: 0 };
-}
+import type { OngoingEffect } from "../damage/OngoingEffect";
 
 export interface AmmoComponent {
   maximumShots: number;
@@ -43,6 +25,7 @@ export enum BodyLocation {
 
 export interface CyberneticProperties {
   sdp: number;
+  sdpDamageTaken: number;
   disabled: boolean;
   hydraulicRams: boolean;
   reinforcedJoints: boolean;
@@ -53,6 +36,7 @@ export interface CyberneticProperties {
 export function createCyberneticProperties(): CyberneticProperties {
   return {
     sdp: 0,
+    sdpDamageTaken: 0,
     disabled: false,
     hydraulicRams: false,
     reinforcedJoints: false,
@@ -67,9 +51,9 @@ export interface BodyPart {
   damage: number;
   destroyed: boolean;
   acid: boolean;
+  isHardSp: boolean;
   cybernetic: boolean;
   cyberneticProperties?: CyberneticProperties;
-  acidTracker: AcidTracker;
 }
 
 export function createBodyPart(location: BodyLocation): BodyPart {
@@ -79,8 +63,8 @@ export function createBodyPart(location: BodyLocation): BodyPart {
     damage: 0,
     destroyed: false,
     acid: false,
+    isHardSp: false,
     cybernetic: false,
-    acidTracker: createAcidTracker(),
   };
 }
 
@@ -102,8 +86,8 @@ export interface DamageComponent {
   btm: number;
   baseStunSave: number;
   baseDeathSave: number;
-  acidTracker: AcidTracker;
-  fireTracker: FireTracker;
+  isDead: boolean;
+  ongoingEffects: OngoingEffect[];
 }
 
 export function createDamageComponent(): DamageComponent {
@@ -112,8 +96,8 @@ export function createDamageComponent(): DamageComponent {
     btm: 0,
     baseStunSave: 8,
     baseDeathSave: 8,
-    acidTracker: createAcidTracker(),
-    fireTracker: createFireTracker(),
+    isDead: false,
+    ongoingEffects: [],
   };
 }
 

@@ -4,8 +4,9 @@ import { CombatActionExecutor } from "../actions/CombatActionExecutor";
 import { createCombatEncounter } from "../domain/combat/CombatEncounter";
 import { CombatSheetType } from "../domain/combat/CombatSheetType";
 import { isNpcSheet } from "../domain/sheets/CombatSheet";
-import { PlaceholderDeathResolver } from "../domain/rules/resolvers/DeathResolver";
-import { PlaceholderStunResolver } from "../domain/rules/resolvers/StunResolver";
+import { SaveResolver } from "../domain/rules/resolvers/SaveResolver";
+import { DamageEngine } from "../services/damage/DamageEngine";
+import { DamageTypeRegistry } from "../services/damage/DamageTypeRegistry";
 import { StatusType } from "../domain/status/StatusType";
 import { hasStatus } from "../domain/status/Status";
 import { EventDispatcher } from "../events/EventDispatcher";
@@ -53,6 +54,12 @@ describe("CombatActionExecutor", () => {
     const factory = new CombatSheetFactory(diceService);
     const encounterService = new EncounterService(repository, dispatcher);
     const initiativeService = new InitiativeService(repository, validation, dispatcher);
+    const damageThresholdService = new DamageThresholdService();
+    const damageEngine = new DamageEngine(
+      new DamageTypeRegistry(),
+      diceService,
+      damageThresholdService,
+    );
     combatService = new CombatService(
       repository,
       encounterService,
@@ -60,14 +67,15 @@ describe("CombatActionExecutor", () => {
       validation,
       factory,
       dispatcher,
+      damageEngine,
     );
 
     executor = new CombatActionExecutor({
       combatService,
       diceService,
-      damageThresholdService: new DamageThresholdService(),
-      stunResolver: new PlaceholderStunResolver(),
-      deathResolver: new PlaceholderDeathResolver(),
+      damageThresholdService,
+      stunResolver: new SaveResolver(),
+      deathResolver: new SaveResolver(),
       dispatcher,
     });
 
@@ -124,7 +132,7 @@ describe("CombatActionExecutor", () => {
     );
 
     expect(result.success).toBe(true);
-    expect((result.data as { succeeded: boolean } | undefined)?.succeeded).toBe(false);
+    expect((result.data as { stun?: { succeeded: boolean } } | undefined)?.stun?.succeeded).toBe(false);
     const sheet = repository.get()?.participants[0];
     expect(sheet && hasStatus(sheet.statuses, StatusType.STUNNED)).toBe(true);
   });
@@ -137,7 +145,7 @@ describe("CombatActionExecutor", () => {
     );
 
     expect(result.success).toBe(true);
-    expect((result.data as { succeeded: boolean } | undefined)?.succeeded).toBe(false);
+    expect((result.data as { death?: { succeeded: boolean } } | undefined)?.death?.succeeded).toBe(false);
     const sheet = repository.get()?.participants[0];
     expect(sheet && hasStatus(sheet.statuses, StatusType.DEAD)).toBe(true);
   });
@@ -155,14 +163,12 @@ describe("CombatActionExecutor", () => {
   });
 });
 
-describe("Placeholder resolvers", () => {
+describe("SaveResolver", () => {
   it("treats roll <= threshold as success", () => {
-    const stun = new PlaceholderStunResolver();
-    expect(stun.resolve(5, 8).succeeded).toBe(true);
-    expect(stun.resolve(9, 8).succeeded).toBe(false);
-
-    const death = new PlaceholderDeathResolver();
-    expect(death.resolve(3, 6).succeeded).toBe(true);
-    expect(death.resolve(7, 6).succeeded).toBe(false);
+    const save = new SaveResolver();
+    expect(save.resolve(5, 8).succeeded).toBe(true);
+    expect(save.resolve(9, 8).succeeded).toBe(false);
+    expect(save.resolve(3, 6).succeeded).toBe(true);
+    expect(save.resolve(7, 6).succeeded).toBe(false);
   });
 });

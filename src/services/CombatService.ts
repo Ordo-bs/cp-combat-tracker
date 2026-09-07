@@ -12,6 +12,10 @@ import {
 import type { EncounterService } from "./EncounterService";
 import type { InitiativeService } from "./InitiativeService";
 import type { IValidationService, ValidationResult } from "./ValidationService";
+import type { DamageEngine } from "./damage/DamageEngine";
+import type { DamageRequest, DeathRequest, StunRequest } from "../domain/damage/DamageRequest";
+import type { ResolutionResult } from "../domain/damage/DamageResult";
+import { hasUnresolvedPendingEffects } from "../domain/damage/sheetEffects";
 
 export interface ICombatService {
   addCombatant(sheet: CombatSheet): ValidationResult;
@@ -33,6 +37,7 @@ export class CombatService implements ICombatService {
     private readonly validationService: IValidationService,
     private readonly factory: CombatSheetFactory,
     private readonly dispatcher: EventDispatcher,
+    private readonly damageEngine?: DamageEngine,
   ) {}
 
   addCombatant(sheet: CombatSheet): ValidationResult {
@@ -195,5 +200,81 @@ export class CombatService implements ICombatService {
       return validation;
     }
     return this.addCombatant(sheet);
+  }
+
+  resolveHit(request: DamageRequest): ResolutionResult {
+    return this.runDamage((engine, sheet) => engine.resolveHit(sheet, request), request.targetId);
+  }
+
+  resolveStun(request: StunRequest): ResolutionResult {
+    return this.runDamage((engine, sheet) => engine.resolveStun(sheet, request), request.targetId);
+  }
+
+  resolveDeath(request: DeathRequest): ResolutionResult {
+    return this.runDamage((engine, sheet) => engine.resolveDeath(sheet, request), request.targetId);
+  }
+
+  applyPendingEffects(combatantId: string): ResolutionResult {
+    return this.runDamage((engine, sheet) => engine.resolvePendingEffects(sheet), combatantId);
+  }
+
+  hasBlockingPendingEffects(combatantId?: string): boolean {
+    const encounter = this.encounterService.getCurrent();
+    const id = combatantId ?? encounter.activeCombatantId;
+    if (!id) {
+      return false;
+    }
+    const sheet = findCombatSheet(encounter, id);
+    return sheet ? hasUnresolvedPendingEffects(sheet) : false;
+  }
+
+  private runDamage(
+    resolve: (engine: DamageEngine, sheet: CombatSheet) => ResolutionResult,
+    targetId: string,
+  ): ResolutionResult {
+    if (!this.damageEngine) {
+      return {
+        success: false,
+        summary: "Damage engine is not configured.",
+        errors: ["Damage engine is not configured."],
+        warnings: [],
+        events: [],
+        diceRolls: [],
+        disabledBodyParts: [],
+        destroyedBodyParts: [],
+        reminders: [],
+      };
+    }
+    const encounter = this.encounterService.getCurrent();
+    const sheet = findCombatSheet(encounter, targetId);
+    if (!sheet) {
+      return {
+        success: false,
+        summary: "Combatant not found.",
+        errors: ["Combatant not found."],
+        warnings: [],
+        events: [],
+        diceRolls: [],
+        disabledBodyParts: [],
+        destroyedBodyParts: [],
+        reminders: [],
+      };
+    }
+    const result = resolve(this.damageEngine, sheet);
+    if (!result.success || !result.nextSheet) {
+      return result;
+    }
+    const index = encounter.participants.findIndex((entry) => entry.id === targetId);
+    if (index < 0) {
+      return { ...result, success: false, errors: ["Combatant not found."] };
+    }
+    encounter.participants[index] = result.nextSheet;
+    void this.repository.replace({ ...encounter });
+    for (const event of result.events) {
+      this.dispatcher.publish(event.type, event.payload as never);
+    }
+    this.dispatcher.publish(CombatEvent.CombatSheetUpdated, { combatantId: targetId });
+    this.dispatcher.publish(CombatEvent.EncounterChanged, {});
+    return result;
   }
 }

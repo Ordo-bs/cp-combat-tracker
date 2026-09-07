@@ -12,6 +12,8 @@ export const ActionType = {
   PerformStunSave: "perform-stun-save",
   PerformDeathSave: "perform-death-save",
   OpenHitCalculator: "open-hit-calculator",
+  ResolveHit: "resolve-hit",
+  ApplyOngoingEffects: "apply-ongoing-effects",
 } as const;
 
 export type ActionTypeName = (typeof ActionType)[keyof typeof ActionType];

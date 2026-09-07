@@ -1,18 +1,17 @@
 import { CombatSheetType } from "../domain/combat/CombatSheetType";
 import { createInitiative } from "../domain/combat/Initiative";
 import type { CombatTemplate, NpcCombatTemplate } from "../domain/combat/CombatTemplate";
-import type { RuntimeMetadata } from "../domain/combat/RuntimeMetadata";
+import { createRuntimeMetadataDefaults, type RuntimeMetadata } from "../domain/combat/RuntimeMetadata";
 import { WoundState } from "../domain/rules/WoundState";
 import { createEmptyStatusCollection } from "../domain/status/Status";
 import type { CombatSheet, NpcCombatSheet, PcCombatSheet, VehicleCombatSheet } from "../domain/sheets/CombatSheet";
 import {
   BodyLocation,
-  createAcidTracker,
   createAmmoComponent,
   createBodyComponent,
   createBodyPart,
+  createCyberneticProperties,
   createDamageComponent,
-  createFireTracker,
   createTrackerComponent,
 } from "../domain/sheets/components";
 import { generateId } from "../util/uuid";
@@ -49,8 +48,7 @@ export class CombatSheetFactory implements ICombatSheetFactory {
           ...base,
           sheetType: CombatSheetType.PC,
           woundState: WoundState.NONE,
-          acidTracker: createAcidTracker(),
-          fireTracker: createFireTracker(),
+          ongoingEffects: [],
         } satisfies PcCombatSheet;
       case CombatSheetType.NPC:
         return {
@@ -67,16 +65,25 @@ export class CombatSheetFactory implements ICombatSheetFactory {
           sheetType: CombatSheetType.VEHICLE,
           sp: 0,
           sdp: 0,
-          acidTracker: createAcidTracker(),
+          isDestroyed: false,
+          ongoingEffects: [],
         } satisfies VehicleCombatSheet;
     }
   }
 
   clone(source: CombatSheet, initiativeOption = CloneInitiativeOption.KEEP): CombatSheet {
-    const metadata = this.createMetadata(source.name, source.runtimeMetadata.templateId, source.runtimeMetadata.templateName);
+    const metadata = this.createMetadata(
+      source.name,
+      source.runtimeMetadata.templateId,
+      source.runtimeMetadata.templateName,
+    );
     const cloned = structuredClone(source);
     cloned.id = metadata.instanceId;
-    cloned.runtimeMetadata = metadata;
+    cloned.runtimeMetadata = {
+      ...metadata,
+      activationSequence: 0,
+      taserHitActivations: [],
+    };
 
     switch (initiativeOption) {
       case CloneInitiativeOption.KEEP:
@@ -110,8 +117,7 @@ export class CombatSheetFactory implements ICombatSheetFactory {
           ...base,
           sheetType: CombatSheetType.PC,
           woundState: WoundState.NONE,
-          acidTracker: createAcidTracker(),
-          fireTracker: createFireTracker(),
+          ongoingEffects: [],
         } satisfies PcCombatSheet;
       case CombatSheetType.VEHICLE:
         return {
@@ -119,7 +125,8 @@ export class CombatSheetFactory implements ICombatSheetFactory {
           sheetType: CombatSheetType.VEHICLE,
           sp: template.sp,
           sdp: template.sdp,
-          acidTracker: createAcidTracker(),
+          isDestroyed: false,
+          ongoingEffects: [],
         } satisfies VehicleCombatSheet;
       case CombatSheetType.NPC:
         return {
@@ -160,9 +167,11 @@ export class CombatSheetFactory implements ICombatSheetFactory {
         damage: source.damage,
         destroyed: source.destroyed,
         acid: source.acid,
+        isHardSp: source.isHardSp,
         cybernetic: source.cybernetic,
         cyberneticProperties: source.cybernetic
           ? {
+              ...createCyberneticProperties(),
               sdp: source.sdp,
               disabled: source.disabled,
               hydraulicRams: source.hydraulicRams,
@@ -171,7 +180,6 @@ export class CombatSheetFactory implements ICombatSheetFactory {
               empShielding: source.empShielding,
             }
           : undefined,
-        acidTracker: createAcidTracker(),
       };
     });
   }
@@ -186,6 +194,7 @@ export class CombatSheetFactory implements ICombatSheetFactory {
       templateId,
       templateName: existingTemplateName ?? templateName,
       createdAt: Date.now(),
+      ...createRuntimeMetadataDefaults(),
     };
   }
 }

@@ -13,6 +13,18 @@ export enum CombatEvent {
   CombatSheetUpdated = "CombatSheetUpdated",
   EncounterChanged = "EncounterChanged",
   CombatActionExecuted = "CombatActionExecuted",
+  CombatantDamaged = "CombatantDamaged",
+  BodyPartDamaged = "BodyPartDamaged",
+  BodyPartDisabled = "BodyPartDisabled",
+  BodyPartDestroyed = "BodyPartDestroyed",
+  ArmorAblated = "ArmorAblated",
+  StunStateChanged = "StunStateChanged",
+  DeathStateChanged = "DeathStateChanged",
+  WoundStateChanged = "WoundStateChanged",
+  OngoingEffectAdded = "OngoingEffectAdded",
+  OngoingEffectResolved = "OngoingEffectResolved",
+  OngoingEffectRemoved = "OngoingEffectRemoved",
+  VehicleDestroyed = "VehicleDestroyed",
 }
 
 export interface CombatantEventPayload {

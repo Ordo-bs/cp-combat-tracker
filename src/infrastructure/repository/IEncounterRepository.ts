@@ -9,6 +9,8 @@ export interface IEncounterRepository {
 }
 
 export interface PersistedEncounterData {
-  version: 1;
+  version: 2;
   encounter: CombatEncounter | null;
 }
+
+export const CURRENT_ENCOUNTER_VERSION = 2 as const;

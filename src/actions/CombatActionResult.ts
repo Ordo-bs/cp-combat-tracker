@@ -15,8 +15,9 @@ export function actionSuccess<TData = void>(
 export function actionFailure<TData = void>(
   errors: string[],
   warnings: string[] = [],
+  data?: TData,
 ): CombatActionResult<TData> {
-  return { success: false, errors, warnings };
+  return { success: false, errors, warnings, data };
 }
 
 export function fromValidationResult<TData = void>(

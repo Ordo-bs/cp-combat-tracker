@@ -27,7 +27,7 @@
 | 9 | Runtime actions | ✅ Done |
 | 10 | Integration tests | ⬜ **Next** |
 | 11 | UI polishing | ⬜ Pending |
-| 12 | Hit/Damage Calculator | ⬜ Planned — see [`docs/hit-damage-calculator-implementation-plan.md`](docs/hit-damage-calculator-implementation-plan.md) |
+| 12 | Hit/Damage Calculator | ✅ Implemented — see [`docs/hit-damage-calculator-implementation-plan.md`](docs/hit-damage-calculator-implementation-plan.md) |
 
 ---
 
@@ -134,7 +134,7 @@
 
 ---
 
-### Step 12 — Hit/Damage Calculator ⬜ PLANNED
+### Step 12 — Hit/Damage Calculator ✅ IMPLEMENTED
 
 **Goal:** Replace placeholders with real Cyberpunk 2020 NPC/Vehicle hit and damage resolution.
 

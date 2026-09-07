@@ -1,9 +1,11 @@
 import type { Plugin } from "obsidian";
 import type { CombatEncounter } from "../../domain/combat/CombatEncounter";
-import type {
-  IEncounterRepository,
-  PersistedEncounterData,
+import {
+  CURRENT_ENCOUNTER_VERSION,
+  type IEncounterRepository,
+  type PersistedEncounterData,
 } from "./IEncounterRepository";
+import { migrateEncounter } from "./migrateEncounter";
 
 export class EncounterRepository implements IEncounterRepository {
   private encounter: CombatEncounter | null = null;
@@ -11,13 +13,17 @@ export class EncounterRepository implements IEncounterRepository {
   constructor(private readonly plugin: Plugin) {}
 
   async load(): Promise<void> {
-    const data = (await this.plugin.loadData()) as PersistedEncounterData | null;
-    this.encounter = data?.encounter ?? null;
+    const data = (await this.plugin.loadData()) as { version?: number; encounter?: unknown } | null;
+    if (!data) {
+      this.encounter = null;
+      return;
+    }
+    this.encounter = migrateEncounter(data);
   }
 
   async save(): Promise<void> {
     const payload: PersistedEncounterData = {
-      version: 1,
+      version: CURRENT_ENCOUNTER_VERSION,
       encounter: this.encounter,
     };
     await this.plugin.saveData(payload);
