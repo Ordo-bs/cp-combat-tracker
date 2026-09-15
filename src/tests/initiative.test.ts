@@ -75,6 +75,48 @@ describe("InitiativeService", () => {
     expect(repository.get()?.initiativeQueue.dirty).toBe(false);
     expect(repository.get()?.activeCombatantId).toBe(bravo.id);
   });
+
+  it("does not advance while the active combatant has unresolved effects", async () => {
+    const encounter = createCombatEncounter("enc-1");
+    const alpha = factory.createDraft(CombatSheetType.NPC, "Alpha", 22);
+    const bravo = factory.createDraft(CombatSheetType.NPC, "Bravo", 18);
+    if (alpha.sheetType !== "NPC") {
+      throw new Error("expected NPC");
+    }
+    alpha.damage.ongoingEffects.push({
+      id: "acid-1",
+      type: "acid",
+      targetId: alpha.id,
+      createdAtActivation: 0,
+      nextApplicationActivation: 0,
+      applicationsRemaining: 2,
+      totalApplications: 3,
+    });
+    alpha.runtimeMetadata.activationSequence = 0;
+    encounter.participants.push(alpha, bravo);
+    encounter.initiativeQueue.orderedIds = [alpha.id, bravo.id];
+    encounter.activeCombatantId = alpha.id;
+    await repository.replace(encounter);
+
+    const advanced = initiativeService.nextTurn();
+    expect(advanced).toBe(false);
+    expect(repository.get()?.activeCombatantId).toBe(alpha.id);
+  });
+
+  it("increments activation sequence when a combatant becomes active", async () => {
+    const encounter = createCombatEncounter("enc-1");
+    const alpha = factory.createDraft(CombatSheetType.NPC, "Alpha", 22);
+    const bravo = factory.createDraft(CombatSheetType.NPC, "Bravo", 18);
+    encounter.participants.push(alpha, bravo);
+    encounter.initiativeQueue.orderedIds = [alpha.id, bravo.id];
+    encounter.activeCombatantId = alpha.id;
+    await repository.replace(encounter);
+
+    initiativeService.nextTurn();
+    const after = repository.get();
+    expect(after?.activeCombatantId).toBe(bravo.id);
+    expect(after?.participants.find((sheet) => sheet.id === bravo.id)?.runtimeMetadata.activationSequence).toBe(1);
+  });
 });
 
 describe("RuleTables", () => {

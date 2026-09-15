@@ -3,10 +3,10 @@ import { WoundState } from "../domain/rules/WoundState";
 
 export interface DerivedDamageValues {
   woundState: WoundState;
-  stunPenalty: number;
-  deathPenalty: number;
-  modifiedStunSave: number;
-  modifiedDeathSave: number;
+  stunPenalty: number | null;
+  deathPenalty: number | null;
+  modifiedStunSave: number | null;
+  modifiedDeathSave: number | null;
 }
 
 export interface IDamageThresholdService {
@@ -25,8 +25,8 @@ export class DamageThresholdService implements IDamageThresholdService {
       woundState: rule.wound,
       stunPenalty: rule.stunPenalty,
       deathPenalty: rule.deathPenalty,
-      modifiedStunSave: baseStunSave + rule.stunPenalty,
-      modifiedDeathSave: baseDeathSave + rule.deathPenalty,
+      modifiedStunSave: rule.stunPenalty === null ? null : baseStunSave + rule.stunPenalty,
+      modifiedDeathSave: rule.deathPenalty === null ? null : baseDeathSave + rule.deathPenalty,
     };
   }
 

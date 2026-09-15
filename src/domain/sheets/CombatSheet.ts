@@ -3,12 +3,11 @@ import type { Initiative } from "../combat/Initiative";
 import type { RuntimeMetadata } from "../combat/RuntimeMetadata";
 import type { StatusCollectionData } from "../status/Status";
 import { WoundState } from "../rules/WoundState";
+import type { OngoingEffect } from "../damage/OngoingEffect";
 import type {
-  AcidTracker,
   AmmoComponent,
   BodyComponent,
   DamageComponent,
-  FireTracker,
   TrackerComponent,
 } from "./components";
 
@@ -23,8 +22,7 @@ export interface CombatSheetBase {
 export interface PcCombatSheet extends CombatSheetBase {
   sheetType: CombatSheetType.PC;
   woundState: WoundState;
-  acidTracker: AcidTracker;
-  fireTracker: FireTracker;
+  ongoingEffects: OngoingEffect[];
 }
 
 export interface NpcCombatSheet extends CombatSheetBase {
@@ -39,7 +37,8 @@ export interface VehicleCombatSheet extends CombatSheetBase {
   sheetType: CombatSheetType.VEHICLE;
   sp: number;
   sdp: number;
-  acidTracker: AcidTracker;
+  isDestroyed: boolean;
+  ongoingEffects: OngoingEffect[];
 }
 
 export type CombatSheet = PcCombatSheet | NpcCombatSheet | VehicleCombatSheet;

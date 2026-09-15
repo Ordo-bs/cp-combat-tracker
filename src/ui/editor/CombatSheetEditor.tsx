@@ -226,65 +226,23 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
       </Section>
 
       {isPcSheet(sheet) && (
-        <>
-          <Section title="Wound State">
-            <Field label="Wound State">
-              <select
-                className="cp-editor__input"
-                value={sheet.woundState}
-                onChange={(event) =>
-                  persistSheet({ ...sheet, woundState: event.target.value as typeof sheet.woundState })
-                }
-              >
-                {WOUND_STATE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </Section>
-          <Section title="Trackers">
-            <CheckboxField
-              label="Acid active"
-              checked={sheet.acidTracker.active}
-              onChange={(active) =>
-                persistSheet({ ...sheet, acidTracker: { ...sheet.acidTracker, active } })
+        <Section title="Wound State">
+          <Field label="Wound State">
+            <select
+              className="cp-editor__input"
+              value={sheet.woundState}
+              onChange={(event) =>
+                persistSheet({ ...sheet, woundState: event.target.value as typeof sheet.woundState })
               }
-            />
-            <Field label="Acid remaining rounds">
-              <NumberInput
-                value={sheet.acidTracker.remainingRounds}
-                onChange={(remainingRounds) =>
-                  persistSheet({
-                    ...sheet,
-                    acidTracker: { ...sheet.acidTracker, remainingRounds },
-                  })
-                }
-                min={0}
-              />
-            </Field>
-            <CheckboxField
-              label="Fire active"
-              checked={sheet.fireTracker.active}
-              onChange={(active) =>
-                persistSheet({ ...sheet, fireTracker: { ...sheet.fireTracker, active } })
-              }
-            />
-            <Field label="Fire remaining rounds">
-              <NumberInput
-                value={sheet.fireTracker.remainingRounds}
-                onChange={(remainingRounds) =>
-                  persistSheet({
-                    ...sheet,
-                    fireTracker: { ...sheet.fireTracker, remainingRounds },
-                  })
-                }
-                min={0}
-              />
-            </Field>
-          </Section>
-        </>
+            >
+              {WOUND_STATE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </Section>
       )}
 
       {isNpcSheet(sheet) && derived && (
@@ -325,7 +283,7 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
                 }
               />
             </Field>
-            <ReadOnlyField label="Modified Stun Save" value={String(derived.modifiedStunSave)} />
+            <ReadOnlyField label="Modified Stun Save" value={derived.modifiedStunSave === null ? "—" : String(derived.modifiedStunSave)} />
             <Field label="Base Death Save">
               <NumberInput
                 value={sheet.damage.baseDeathSave}
@@ -334,8 +292,15 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
                 }
               />
             </Field>
-            <ReadOnlyField label="Modified Death Save" value={String(derived.modifiedDeathSave)} />
+            <ReadOnlyField label="Modified Death Save" value={derived.modifiedDeathSave === null ? "—" : String(derived.modifiedDeathSave)} />
             <ReadOnlyField label="Wound State" value={WOUND_STATE_LABELS[derived.woundState]} />
+            <CheckboxField
+              label="Dead"
+              checked={sheet.damage.isDead}
+              onChange={(isDead) =>
+                persistSheet({ ...sheet, damage: { ...sheet.damage, isDead } })
+              }
+            />
           </Section>
 
           <Section title="Ammo">
@@ -417,34 +382,14 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
             <Field label="SDP">
               <NumberInput value={sheet.sdp} onChange={(sdp) => persistSheet({ ...sheet, sdp })} min={0} />
             </Field>
-          </Section>
-          <Section title="Acid Tracker">
             <CheckboxField
-              label="Acid active"
-              checked={sheet.acidTracker.active}
-              onChange={(active) =>
-                persistSheet({ ...sheet, acidTracker: { ...sheet.acidTracker, active } })
-              }
+              label="Destroyed"
+              checked={sheet.isDestroyed}
+              onChange={(isDestroyed) => persistSheet({ ...sheet, isDestroyed })}
             />
-            <Field label="Acid remaining rounds">
-              <NumberInput
-                value={sheet.acidTracker.remainingRounds}
-                onChange={(remainingRounds) =>
-                  persistSheet({
-                    ...sheet,
-                    acidTracker: { ...sheet.acidTracker, remainingRounds },
-                  })
-                }
-                min={0}
-              />
-            </Field>
           </Section>
         </>
       )}
-
-      <Section title="Future Rule Systems">
-        <p className="cp-editor__placeholder">Reserved for Hit/Damage Engine</p>
-      </Section>
     </div>
   );
 }
@@ -467,6 +412,11 @@ function BodyPartEditor({
       <Field label="Damage">
         <NumberInput value={part.damage} onChange={(damage) => onChange({ ...part, damage })} min={0} />
       </Field>
+      <CheckboxField
+        label="Hard SP"
+        checked={part.isHardSp}
+        onChange={(isHardSp) => onChange({ ...part, isHardSp })}
+      />
       <CheckboxField
         label="Destroyed"
         checked={part.destroyed}
@@ -499,6 +449,18 @@ function BodyPartEditor({
                 onChange({
                   ...part,
                   cyberneticProperties: { ...part.cyberneticProperties!, sdp },
+                })
+              }
+              min={0}
+            />
+          </Field>
+          <Field label="SDP damage taken">
+            <NumberInput
+              value={part.cyberneticProperties.sdpDamageTaken}
+              onChange={(sdpDamageTaken) =>
+                onChange({
+                  ...part,
+                  cyberneticProperties: { ...part.cyberneticProperties!, sdpDamageTaken },
                 })
               }
               min={0}

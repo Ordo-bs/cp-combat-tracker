@@ -6,6 +6,7 @@ import {
 import { commitInitiative, markInitiativePending } from "../domain/combat/Initiative";
 import { markQueueDirty } from "../domain/initiative/InitiativeQueue";
 import { getSheetCreationOrder } from "../domain/sheets/CombatSheet";
+import { hasUnresolvedPendingEffects } from "../domain/damage/sheetEffects";
 import { CombatEvent } from "../events/EventTypes";
 import type { EventDispatcher } from "../events/EventDispatcher";
 import type { IEncounterRepository } from "../infrastructure/repository/IEncounterRepository";
@@ -15,7 +16,7 @@ export interface IInitiativeService {
   updatePending(combatantId: string, pending: number): boolean;
   insertCombatant(combatantId: string): void;
   removeCombatant(combatantId: string): void;
-  nextTurn(): void;
+  nextTurn(): boolean;
   previousTurn(): void;
   rebuildQueueIfDirty(): void;
   getOrderedIds(): string[];
@@ -70,7 +71,7 @@ export class InitiativeService implements IInitiativeService {
     void this.repository.replace({ ...encounter });
   }
 
-  nextTurn(): void {
+  nextTurn(): boolean {
     const encounter = this.requireEncounter();
     const queue = encounter.initiativeQueue;
     const ids = queue.orderedIds;
@@ -78,10 +79,17 @@ export class InitiativeService implements IInitiativeService {
     if (ids.length === 0) {
       encounter.activeCombatantId = null;
       void this.repository.replace({ ...encounter });
-      return;
+      return true;
     }
 
     const currentId = encounter.activeCombatantId;
+    if (currentId) {
+      const current = findCombatSheet(encounter, currentId);
+      if (current && hasUnresolvedPendingEffects(current)) {
+        return false;
+      }
+    }
+
     const currentIndex = currentId ? ids.indexOf(currentId) : -1;
     const isWrappingToNewRound =
       currentId === null || (currentIndex >= 0 && currentIndex === ids.length - 1);
@@ -91,6 +99,7 @@ export class InitiativeService implements IInitiativeService {
       this.sortQueue(encounter);
       encounter.initiativeQueue.dirty = false;
       encounter.activeCombatantId = encounter.initiativeQueue.orderedIds[0] ?? null;
+      this.incrementActivation(encounter);
 
       void this.repository.replace({ ...encounter });
       this.dispatcher.publish(CombatEvent.QueueRebuilt, {});
@@ -100,7 +109,7 @@ export class InitiativeService implements IInitiativeService {
           combatantId: encounter.activeCombatantId,
         });
       }
-      return;
+      return true;
     }
 
     if (!currentId) {
@@ -110,12 +119,14 @@ export class InitiativeService implements IInitiativeService {
       encounter.activeCombatantId = ids[nextIndex] ?? null;
     }
 
+    this.incrementActivation(encounter);
     void this.repository.replace({ ...encounter });
     if (encounter.activeCombatantId) {
       this.dispatcher.publish(CombatEvent.TurnAdvanced, {
         combatantId: encounter.activeCombatantId,
       });
     }
+    return true;
   }
 
   previousTurn(): void {
@@ -158,6 +169,16 @@ export class InitiativeService implements IInitiativeService {
 
   getOrderedIds(): string[] {
     return this.repository.get()?.initiativeQueue.orderedIds ?? [];
+  }
+
+  private incrementActivation(encounter: CombatEncounter): void {
+    if (!encounter.activeCombatantId) {
+      return;
+    }
+    const sheet = findCombatSheet(encounter, encounter.activeCombatantId);
+    if (sheet) {
+      sheet.runtimeMetadata.activationSequence += 1;
+    }
   }
 
   private commitPendingInitiatives(encounter: CombatEncounter): void {
