@@ -166,7 +166,6 @@ export class CombatSheetFactory implements ICombatSheetFactory {
         sp: source.sp,
         damage: source.damage,
         destroyed: source.destroyed,
-        acid: source.acid,
         isHardSp: source.isHardSp,
         cybernetic: source.cybernetic,
         cyberneticProperties: source.cybernetic

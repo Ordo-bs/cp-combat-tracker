@@ -138,7 +138,6 @@ function parseBodyPart(
     sp: parseInteger(partData.sp, `${fieldPath}.sp`, fileName, baseLine, errors) ?? defaults.sp,
     damage: parseInteger(partData.damage, `${fieldPath}.damage`, fileName, baseLine, errors) ?? defaults.damage,
     destroyed: parseBoolean(partData.destroyed, `${fieldPath}.destroyed`, fileName, baseLine, errors) ?? defaults.destroyed,
-    acid: parseBoolean(partData.acid, `${fieldPath}.acid`, fileName, baseLine, errors) ?? defaults.acid,
     isHardSp: parseBoolean(partData.isHardSp, `${fieldPath}.isHardSp`, fileName, baseLine, errors) ?? defaults.isHardSp,
     cybernetic,
     sdp: cybernetic ? (sdp ?? defaults.sdp) : 0,

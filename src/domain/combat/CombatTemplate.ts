@@ -12,7 +12,6 @@ export interface BodyPartTemplate {
   sp: number;
   damage: number;
   destroyed: boolean;
-  acid: boolean;
   isHardSp: boolean;
   cybernetic: boolean;
   sdp: number;
