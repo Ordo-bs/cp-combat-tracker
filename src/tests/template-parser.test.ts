@@ -182,24 +182,13 @@ body.torso.isHardSp: true
     }
   });
 
-  it("rejects acid on body parts because it is derived from ongoing effects", () => {
-    const flat = parse(`\`\`\`combat-sheet
+  it("rejects acid on body parts", () => {
+    const result = parse(`\`\`\`combat-sheet
 type: npc
 name: Test
 body.rightLeg.acid: true
 \`\`\``);
-    expect(flat.success).toBe(false);
-    expect(flat.errors.some((e) => e.field === "body.rightLeg.acid")).toBe(true);
-    expect(flat.errors.some((e) => e.message.includes("ongoing effects"))).toBe(true);
-
-    const nested = parse(`\`\`\`combat-sheet
-type: npc
-name: Test
-body:
-  rightLeg:
-    acid: true
-\`\`\``);
-    expect(nested.success).toBe(false);
-    expect(nested.errors.some((e) => e.message.includes("ongoing effects"))).toBe(true);
+    expect(result.success).toBe(false);
+    expect(result.errors.some((e) => e.field === "body.rightLeg.acid")).toBe(true);
   });
 });

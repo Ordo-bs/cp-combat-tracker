@@ -423,6 +423,11 @@ function BodyPartEditor({
         onChange={(destroyed) => onChange({ ...part, destroyed })}
       />
       <CheckboxField
+        label="Acid"
+        checked={part.acid}
+        onChange={(acid) => onChange({ ...part, acid })}
+      />
+      <CheckboxField
         label="Cybernetic"
         checked={part.cybernetic}
         onChange={(cybernetic) => {

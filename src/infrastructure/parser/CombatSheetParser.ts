@@ -15,7 +15,6 @@ import { findInvalidFlatBodyKeys, normalizeFlatBodyFields } from "./normalizeFla
 import { parseYamlDocument } from "./parseYaml";
 import {
   allowedFieldsForType,
-  BODY_PART_DERIVED_FIELDS,
   BODY_PART_FIELDS,
   BODY_YAML_KEYS,
   createDefaultBodyPartTemplate,
@@ -123,15 +122,7 @@ function parseBodyPart(
 
   const partData = raw as Record<string, unknown>;
   for (const key of Object.keys(partData)) {
-    if (BODY_PART_DERIVED_FIELDS.has(key)) {
-      pushError(
-        errors,
-        fileName,
-        `"${key}" is derived from ongoing effects and cannot appear in templates.`,
-        baseLine,
-        `${fieldPath}.${key}`,
-      );
-    } else if (!BODY_PART_FIELDS.has(key)) {
+    if (!BODY_PART_FIELDS.has(key)) {
       pushError(errors, fileName, `Unknown body field "${key}" in ${fieldPath}.`, baseLine, fieldPath);
     }
   }
@@ -332,18 +323,7 @@ export function parseCombatTemplate(options: ParseTemplateOptions): TemplatePars
   const errors: TemplateParseError[] = [];
   const invalidFlatKeys = findInvalidFlatBodyKeys(yamlParsed.data!);
   for (const key of invalidFlatKeys) {
-    const field = key.split(".").pop();
-    if (field && BODY_PART_DERIVED_FIELDS.has(field)) {
-      pushError(
-        errors,
-        fileName,
-        `"${field}" is derived from ongoing effects and cannot appear in templates.`,
-        block.blockContentStartLine,
-        key,
-      );
-    } else {
-      pushError(errors, fileName, `Unknown body field in "${key}".`, block.blockContentStartLine, key);
-    }
+    pushError(errors, fileName, `Unknown body field in "${key}".`, block.blockContentStartLine, key);
   }
   if (invalidFlatKeys.length > 0) {
     return { success: false, errors, warnings };

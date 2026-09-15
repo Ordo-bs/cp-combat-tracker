@@ -62,9 +62,6 @@ export const BODY_PART_FIELDS = new Set([
   "empShielding",
 ]);
 
-/** Display flags derived from ongoing effects; not starting template state. */
-export const BODY_PART_DERIVED_FIELDS = new Set(["acid"]);
-
 export function createDefaultBodyPartTemplate(): BodyPartTemplate {
   return {
     sp: 0,
