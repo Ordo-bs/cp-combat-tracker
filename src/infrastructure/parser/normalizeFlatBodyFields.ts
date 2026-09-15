@@ -1,4 +1,4 @@
-import { BODY_PART_FIELDS, BODY_YAML_KEYS } from "./templateSchema";
+import { BODY_PART_DERIVED_FIELDS, BODY_PART_FIELDS, BODY_YAML_KEYS } from "./templateSchema";
 
 const FLAT_BODY_KEY =
   /^body\.(head|torso|leftArm|rightArm|leftLeg|rightLeg)\.([a-zA-Z]+)$/;
@@ -77,7 +77,7 @@ export function findInvalidFlatBodyKeys(data: Record<string, unknown>): string[]
       continue;
     }
 
-    if (!BODY_PART_FIELDS.has(field)) {
+    if (BODY_PART_DERIVED_FIELDS.has(field) || !BODY_PART_FIELDS.has(field)) {
       invalid.push(key);
     }
   }

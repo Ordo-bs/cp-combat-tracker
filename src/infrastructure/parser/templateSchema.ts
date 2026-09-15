@@ -52,7 +52,6 @@ export const BODY_PART_FIELDS = new Set([
   "sp",
   "damage",
   "destroyed",
-  "acid",
   "isHardSp",
   "cybernetic",
   "sdp",
@@ -63,12 +62,14 @@ export const BODY_PART_FIELDS = new Set([
   "empShielding",
 ]);
 
+/** Display flags derived from ongoing effects; not starting template state. */
+export const BODY_PART_DERIVED_FIELDS = new Set(["acid"]);
+
 export function createDefaultBodyPartTemplate(): BodyPartTemplate {
   return {
     sp: 0,
     damage: 0,
     destroyed: false,
-    acid: false,
     isHardSp: false,
     cybernetic: false,
     sdp: 0,
