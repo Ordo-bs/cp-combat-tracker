@@ -35,7 +35,7 @@ import {
   type VehicleCombatSheet,
 } from "../../domain/sheets/CombatSheet";
 import { BodyLocation, type BodyPart } from "../../domain/sheets/components";
-import { setStatus } from "../../domain/status/Status";
+import { hasStatus, setStatus } from "../../domain/status/Status";
 import { StatusType } from "../../domain/status/StatusType";
 import { resolveSave } from "../../domain/rules/resolvers/SaveResolver";
 import { generateId } from "../../util/uuid";
@@ -366,7 +366,9 @@ export class DamageEngine {
     }
 
     if (request.damageType === "stun") {
-      result.summary = this.stunTypeSummary(location, hypotheticalFull, result);
+      result.summary = actuallyPenetrated
+        ? this.stunTypeSummary(location, hypotheticalFull, result)
+        : `HIT — ${this.partName(location)}\n\nStun damage did not penetrate the armor.`;
     } else if (!actuallyPenetrated) {
       result.summary = `HIT — ${this.partName(location)}\n\n${raw} damage absorbed by SP ${armour.effectiveSp}.`;
     } else if (cybernetic) {
@@ -449,14 +451,19 @@ export class DamageEngine {
   }
 
   private resolveExplosive(sheet: CombatSheet, request: DamageRequest): ResolutionResult {
-    const damage = floorDamage((request.rawDamage ?? 0) - (request.damageReduction ?? 0));
+    const through = Math.max(
+      0,
+      floorDamage((request.rawDamage ?? 0) - (request.damageReduction ?? 0)),
+    );
     const result = emptyResult();
     if (isNpcSheet(sheet)) {
-      const applied = Math.max(0, damage);
+      const penetrated = through > 0;
+      const applied = penetrated ? Math.max(1, through + sheet.damage.btm) : 0;
       sheet.damage.totalDamage += applied;
       result.damage = {
         rawDamage: request.rawDamage ?? 0,
-        penetratedArmor: applied > 0,
+        penetratedArmor: penetrated,
+        btm: penetrated ? sheet.damage.btm : undefined,
         finalDamage: applied,
         appliedTo: "totalDamage",
       };
@@ -467,9 +474,11 @@ export class DamageEngine {
           cybernetic: false,
         });
       }
-      result.summary = `HIT — Explosive\n\n${applied} damage applied to Total Damage.`;
+      result.summary = penetrated
+        ? `HIT — Explosive\n\n${through} after reduction → ${applied} after BTM. Applied to Total Damage.`
+        : "HIT — Explosive\n\nDamage reduced to 0.";
     } else if (isVehicleSheet(sheet)) {
-      const applied = Math.max(0, damage);
+      const applied = through;
       sheet.sdp = Math.max(0, sheet.sdp - applied);
       if (sheet.sdp <= 0) {
         sheet.isDestroyed = true;
@@ -583,9 +592,16 @@ export class DamageEngine {
     const threshold = derived.modifiedStunSave + (request.additionalPenalty ?? 0) + penalty;
     const roll = this.dice.d10();
     const succeeded = resolveSave(roll, threshold).succeeded;
-    sheet.statuses = setStatus(sheet.statuses, StatusType.STUNNED, !succeeded);
+    if (!succeeded) {
+      sheet.statuses = setStatus(sheet.statuses, StatusType.STUNNED, true);
+    }
     result.diceRolls.push({ notation: "1d10", rolls: [roll], total: roll });
-    result.stun = { roll, threshold, succeeded, stunned: !succeeded };
+    result.stun = {
+      roll,
+      threshold,
+      succeeded,
+      stunned: hasStatus(sheet.statuses, StatusType.STUNNED),
+    };
     result.summary = `HIT — Taser — ${this.partName(part.location)}\n\nStun Save: ${roll} vs ${threshold} — ${succeeded ? "succeeded" : "failed"}.`;
     result.nextSheet = sheet;
     return result;
@@ -703,10 +719,17 @@ export class DamageEngine {
     const roll = this.dice.d10();
     const threshold = derived.modifiedStunSave;
     const succeeded = resolveSave(roll, threshold).succeeded;
-    sheet.statuses = setStatus(sheet.statuses, StatusType.STUNNED, !succeeded);
+    if (!succeeded) {
+      sheet.statuses = setStatus(sheet.statuses, StatusType.STUNNED, true);
+      result.events.push(this.event(CombatEvent.StunStateChanged, { combatantId: sheet.id, stunned: true }));
+    }
     result.diceRolls.push({ notation: "1d10", rolls: [roll], total: roll });
-    result.stun = { roll, threshold, succeeded, stunned: !succeeded };
-    result.events.push(this.event(CombatEvent.StunStateChanged, { combatantId: sheet.id, stunned: !succeeded }));
+    result.stun = {
+      roll,
+      threshold,
+      succeeded,
+      stunned: hasStatus(sheet.statuses, StatusType.STUNNED),
+    };
   }
 
   private rollBaseDeathSave(sheet: NpcCombatSheet): DeathOutcome {

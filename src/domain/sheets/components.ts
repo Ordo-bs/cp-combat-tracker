@@ -7,9 +7,9 @@ export interface AmmoComponent {
 }
 
 export function createAmmoComponent(
-  maximumShots = 30,
-  remainingShots = 30,
-  remainingMagazines = 3,
+  maximumShots = 0,
+  remainingShots = 0,
+  remainingMagazines = 0,
 ): AmmoComponent {
   return { maximumShots, remainingShots, remainingMagazines };
 }
@@ -23,6 +23,10 @@ export enum BodyLocation {
   LEFT_LEG = "LEFT_LEG",
 }
 
+export const DEFAULT_CYBERNETIC_SDP = 30;
+export const CYBERNETIC_DISABLE_SDP_DAMAGE = 20;
+export const CYBERNETIC_DESTROY_SDP_DAMAGE = 30;
+
 export interface CyberneticProperties {
   sdp: number;
   sdpDamageTaken: number;
@@ -35,7 +39,7 @@ export interface CyberneticProperties {
 
 export function createCyberneticProperties(): CyberneticProperties {
   return {
-    sdp: 0,
+    sdp: DEFAULT_CYBERNETIC_SDP,
     sdpDamageTaken: 0,
     disabled: false,
     hydraulicRams: false,

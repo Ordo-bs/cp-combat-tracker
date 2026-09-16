@@ -149,38 +149,43 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
           </h2>
           <span className="cp-editor__type-badge">{SHEET_TYPE_LABELS[sheet.sheetType]}</span>
         </div>
-        {isDraft ? (
-          <div className="cp-editor__header-actions">
-            <Field label="Type">
-              <select
-                className="cp-editor__input"
-                value={sheet.sheetType}
-                onChange={(event) => {
-                  const sheetType = event.target.value as CombatSheetType;
-                  setDraftSheet(
-                    factory.createDraft(sheetType, draftSheet.name, draftSheet.initiative.pending),
-                  );
-                }}
-              >
-                {Object.values(CombatSheetType).map((type) => (
-                  <option key={type} value={type}>
-                    {SHEET_TYPE_LABELS[type]}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <button type="button" className="mod-cta" onClick={handleConfirm} disabled={!validation.valid}>
-              Confirm
-            </button>
+        <div className="cp-editor__header-actions">
+          <Field label="Name">
+            <TextInput value={sheet.name} onChange={updateName} autoFocus={isDraft} />
+          </Field>
+          {isDraft ? (
+            <>
+              <Field label="Type">
+                <select
+                  className="cp-editor__input"
+                  value={sheet.sheetType}
+                  onChange={(event) => {
+                    const sheetType = event.target.value as CombatSheetType;
+                    setDraftSheet(
+                      factory.createDraft(sheetType, draftSheet.name, draftSheet.initiative.pending),
+                    );
+                  }}
+                >
+                  {Object.values(CombatSheetType).map((type) => (
+                    <option key={type} value={type}>
+                      {SHEET_TYPE_LABELS[type]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <button type="button" className="mod-cta" onClick={handleConfirm} disabled={!validation.valid}>
+                Confirm
+              </button>
+              <button type="button" onClick={onClose}>
+                Cancel
+              </button>
+            </>
+          ) : (
             <button type="button" onClick={onClose}>
-              Cancel
+              Close
             </button>
-          </div>
-        ) : (
-          <button type="button" onClick={onClose}>
-            Close
-          </button>
-        )}
+          )}
+        </div>
       </header>
 
       {DEV_MODE && (
@@ -201,9 +206,6 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
       )}
 
       <Section title="General">
-        <Field label="Name">
-          <TextInput value={sheet.name} onChange={updateName} autoFocus={isDraft} />
-        </Field>
         <Field
           label="Initiative"
           hint="Pending initiative; queue reorders at round wrap."

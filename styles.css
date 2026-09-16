@@ -247,13 +247,17 @@
 }
 
 .cp-editor__header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  margin: -1rem -1rem 1rem;
+  padding: 1rem 1rem 0.75rem;
   border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
 }
 
 .cp-editor__header-main {
@@ -279,6 +283,11 @@
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 0.5rem;
+}
+
+.cp-editor__header-actions .cp-editor__field {
+  flex: 1 1 10rem;
+  min-width: 8rem;
 }
 
 .cp-editor__validation-banner {
@@ -440,6 +449,7 @@
 
 .cp-template-block__actions {
   display: flex;
+  flex-direction: column;
   gap: 0.5rem;
 }
 

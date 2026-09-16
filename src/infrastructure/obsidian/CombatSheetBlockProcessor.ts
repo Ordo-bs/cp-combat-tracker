@@ -54,7 +54,7 @@ function renderError(el: HTMLElement, message: string, source: string): void {
 function renderTemplateCard(
   el: HTMLElement,
   template: CombatTemplate,
-  onAdd: () => void,
+  actions: { onAdd: () => void; onEdit: () => void },
 ): void {
   el.empty();
   el.addClass("cp-template-block");
@@ -68,16 +68,27 @@ function renderTemplateCard(
     summary.createDiv({ cls: "cp-template-block__summary-line", text: line });
   }
 
-  const actions = el.createDiv({ cls: "cp-template-block__actions" });
-  const button = actions.createEl("button", {
+  const actionRow = el.createDiv({ cls: "cp-template-block__actions" });
+  const addButton = actionRow.createEl("button", {
     cls: "mod-cta cp-template-block__button",
     text: "Add to Combat",
   });
-  button.type = "button";
-  button.addEventListener("click", (event) => {
+  addButton.type = "button";
+  addButton.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    onAdd();
+    actions.onAdd();
+  });
+
+  const editButton = actionRow.createEl("button", {
+    cls: "cp-template-block__button",
+    text: "Edit and add to combat",
+  });
+  editButton.type = "button";
+  editButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    actions.onEdit();
   });
 }
 
@@ -101,15 +112,37 @@ export function registerCombatSheetBlockProcessor(plugin: Plugin, pluginContext:
       return;
     }
 
-    renderTemplateCard(el, parsed.template, () => {
-      void (async () => {
-        const { sheet, errors } = pluginContext.templateService.instantiateFromBlock(source, file);
-        if (errors.length > 0 || !sheet) {
-          new Notice(errors[0] ?? "Failed to create combatant from template.");
+    const createSheet = () => {
+      const { sheet, errors } = pluginContext.templateService.instantiateFromBlock(source, file);
+      if (errors.length > 0 || !sheet) {
+        new Notice(errors[0] ?? "Failed to create combatant from template.");
+        return undefined;
+      }
+      return sheet;
+    };
+
+    renderTemplateCard(el, parsed.template, {
+      onAdd: () => {
+        const sheet = createSheet();
+        if (!sheet) {
           return;
         }
-        await openDraftCombatSheetEditor(plugin.app, sheet);
-      })();
+        const result = pluginContext.combatService.confirmDraft(sheet);
+        if (!result.valid) {
+          new Notice(result.errors.join(" "));
+          return;
+        }
+        new Notice(`Added ${sheet.name} to combat.`);
+      },
+      onEdit: () => {
+        void (async () => {
+          const sheet = createSheet();
+          if (!sheet) {
+            return;
+          }
+          await openDraftCombatSheetEditor(plugin.app, sheet);
+        })();
+      },
     });
   });
 }

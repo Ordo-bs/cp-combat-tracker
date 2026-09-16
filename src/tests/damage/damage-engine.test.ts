@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CombatSheetType } from "../../domain/combat/CombatSheetType";
-import { BodyLocation } from "../../domain/sheets/components";
+import { BodyLocation, createCyberneticProperties } from "../../domain/sheets/components";
 import { isNpcSheet, isVehicleSheet, type NpcCombatSheet, type VehicleCombatSheet } from "../../domain/sheets/CombatSheet";
 import { StatusType } from "../../domain/status/StatusType";
 import { hasStatus } from "../../domain/status/Status";
@@ -272,7 +272,7 @@ describe("damage types", () => {
     expect(result.summary).toMatch(/ineffective/i);
   });
 
-  it("applies explosive to totalDamage without a body part", () => {
+  it("applies explosive to totalDamage without a body part, including BTM", () => {
     const { engine: damage } = engine([1]);
     const sheet = npc();
     const result = damage.resolveHit(
@@ -283,7 +283,8 @@ describe("damage types", () => {
     if (!next || !isNpcSheet(next)) {
       throw new Error("expected npc");
     }
-    expect(next.damage.totalDamage).toBe(7);
+    expect(result.damage?.btm).toBe(-2);
+    expect(next.damage.totalDamage).toBe(5);
     expect(next.body.find((part) => part.location === BodyLocation.TORSO)!.damage).toBe(0);
   });
 
@@ -321,6 +322,18 @@ describe("damage types", () => {
     expect(next.damage.totalDamage).toBe(0);
     expect(result.stun).toBeDefined();
   });
+
+  it("says stun damage did not penetrate when absorbed by armor", () => {
+    const { engine: damage } = engine();
+    const sheet = npc((s) => {
+      const torso = s.body.find((part) => part.location === BodyLocation.TORSO)!;
+      torso.sp = 20;
+    });
+    const result = damage.resolveHit(sheet, hit({ targetId: sheet.id, damageType: "stun", rawDamage: 8 }));
+    expect(result.summary).toMatch(/did not penetrate the armor/i);
+    expect(result.summary).not.toMatch(/hypothetical 0/);
+    expect(result.stun).toBeUndefined();
+  });
 });
 
 describe("cybernetics and vehicles", () => {
@@ -353,6 +366,44 @@ describe("cybernetics and vehicles", () => {
     expect(arm.cyberneticProperties?.sdp).toBe(15);
     expect(next.damage.totalDamage).toBe(0);
     expect(result.stun).toBeUndefined();
+  });
+
+  it("disables a cybernetic part at 20 SDP damage and destroys it at 30", () => {
+    const { engine: damage } = engine();
+    const sheet = npc((s) => {
+      const arm = s.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
+      arm.sp = 0;
+      arm.cybernetic = true;
+      arm.cyberneticProperties = createCyberneticProperties();
+      s.damage.btm = 0;
+    });
+
+    const disabled = damage.resolveHit(
+      sheet,
+      hit({ targetId: sheet.id, rawDamage: 20, hitLocation: BodyLocation.RIGHT_ARM }),
+    );
+    const disabledSheet = disabled.nextSheet;
+    if (!disabledSheet || !isNpcSheet(disabledSheet)) {
+      throw new Error("expected npc");
+    }
+    const disabledArm = disabledSheet.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
+    expect(disabledArm.cyberneticProperties?.sdpDamageTaken).toBe(20);
+    expect(disabledArm.cyberneticProperties?.sdp).toBe(10);
+    expect(disabledArm.cyberneticProperties?.disabled).toBe(true);
+    expect(disabledArm.destroyed).toBe(false);
+
+    const destroyed = damage.resolveHit(
+      disabledSheet,
+      hit({ targetId: sheet.id, rawDamage: 10, hitLocation: BodyLocation.RIGHT_ARM }),
+    );
+    const destroyedSheet = destroyed.nextSheet;
+    if (!destroyedSheet || !isNpcSheet(destroyedSheet)) {
+      throw new Error("expected npc");
+    }
+    const destroyedArm = destroyedSheet.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
+    expect(destroyedArm.cyberneticProperties?.sdpDamageTaken).toBe(30);
+    expect(destroyedArm.cyberneticProperties?.sdp).toBe(0);
+    expect(destroyedArm.destroyed).toBe(true);
   });
 
   it("does not double cybernetic head damage", () => {
@@ -405,6 +456,23 @@ describe("saves, taser, pain editor", () => {
     }
     expect(result.stun?.succeeded).toBe(true);
     expect(hasStatus(next.statuses, StatusType.STUNNED)).toBe(false);
+  });
+
+  it("does not clear stun when a hit stun save succeeds", () => {
+    const { engine: damage } = engine([1]);
+    const sheet = npc((s) => {
+      const torso = s.body.find((part) => part.location === BodyLocation.TORSO)!;
+      torso.sp = 0;
+      s.damage.btm = 0;
+    });
+    sheet.statuses = [{ type: StatusType.STUNNED, status: { type: StatusType.STUNNED, active: true } }];
+    const result = damage.resolveHit(sheet, hit({ targetId: sheet.id, rawDamage: 4 }));
+    const next = result.nextSheet;
+    if (!next) {
+      throw new Error("missing sheet");
+    }
+    expect(result.stun?.succeeded).toBe(true);
+    expect(hasStatus(next.statuses, StatusType.STUNNED)).toBe(true);
   });
 
   it("skips automatic stun when Pain Editor is present but still allows explicit stun", () => {

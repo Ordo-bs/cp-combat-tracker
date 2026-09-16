@@ -6,7 +6,12 @@ import {
   type NpcCombatSheet,
   type VehicleCombatSheet,
 } from "../sheets/CombatSheet";
-import { BodyLocation, type BodyPart } from "../sheets/components";
+import {
+  BodyLocation,
+  CYBERNETIC_DESTROY_SDP_DAMAGE,
+  CYBERNETIC_DISABLE_SDP_DAMAGE,
+  type BodyPart,
+} from "../sheets/components";
 import type { OngoingEffect } from "./OngoingEffect";
 
 export function getOngoingEffects(sheet: CombatSheet): OngoingEffect[] {
@@ -55,11 +60,11 @@ export function isVehicleHardSp(_sheet: VehicleCombatSheet): true {
 }
 
 export function cyberneticDisabledThreshold(hydraulicRams: boolean, reinforcedJoints: boolean, thickenedMyomar: boolean): number {
-  return 20 + (hydraulicRams ? 10 : 0) + (reinforcedJoints ? 5 : 0) + (thickenedMyomar ? 5 : 0);
+  return CYBERNETIC_DISABLE_SDP_DAMAGE + (hydraulicRams ? 10 : 0) + (reinforcedJoints ? 5 : 0) + (thickenedMyomar ? 5 : 0);
 }
 
 export function cyberneticDestroyedThreshold(hydraulicRams: boolean, reinforcedJoints: boolean, thickenedMyomar: boolean): number {
-  return 30 + (hydraulicRams ? 10 : 0) + (reinforcedJoints ? 5 : 0) + (thickenedMyomar ? 5 : 0);
+  return CYBERNETIC_DESTROY_SDP_DAMAGE + (hydraulicRams ? 10 : 0) + (reinforcedJoints ? 5 : 0) + (thickenedMyomar ? 5 : 0);
 }
 
 export function hasUnresolvedPendingEffects(sheet: CombatSheet): boolean {

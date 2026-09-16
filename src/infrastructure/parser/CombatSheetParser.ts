@@ -10,6 +10,7 @@ import type {
   TemplateParseResult,
   VehicleCombatTemplate,
 } from "../../domain/combat/CombatTemplate";
+import { DEFAULT_CYBERNETIC_SDP } from "../../domain/sheets/components";
 import { extractCombatSheetBlocks } from "./extractCombatSheetBlock";
 import { findInvalidFlatBodyKeys, normalizeFlatBodyFields } from "./normalizeFlatBodyFields";
 import { parseYamlDocument } from "./parseYaml";
@@ -72,6 +73,20 @@ function parseInteger(
   }
   pushError(errors, fileName, `${field} must be an integer.`, line, field);
   return undefined;
+}
+
+function parseRequiredInteger(
+  value: unknown,
+  field: string,
+  fileName: string,
+  line: number | undefined,
+  errors: TemplateParseError[],
+): number | undefined {
+  if (value === undefined) {
+    pushError(errors, fileName, `${field} is required.`, line, field);
+    return undefined;
+  }
+  return parseInteger(value, field, fileName, line, errors);
 }
 
 function parseRequiredString(
@@ -140,7 +155,7 @@ function parseBodyPart(
     destroyed: parseBoolean(partData.destroyed, `${fieldPath}.destroyed`, fileName, baseLine, errors) ?? defaults.destroyed,
     isHardSp: parseBoolean(partData.isHardSp, `${fieldPath}.isHardSp`, fileName, baseLine, errors) ?? defaults.isHardSp,
     cybernetic,
-    sdp: cybernetic ? (sdp ?? defaults.sdp) : 0,
+    sdp: cybernetic ? (sdp ?? DEFAULT_CYBERNETIC_SDP) : 0,
     disabled: parseBoolean(partData.disabled, `${fieldPath}.disabled`, fileName, baseLine, errors) ?? defaults.disabled,
     hydraulicRams:
       parseBoolean(partData.hydraulicRams, `${fieldPath}.hydraulicRams`, fileName, baseLine, errors) ??
@@ -267,19 +282,19 @@ function buildTemplate(
       return { ...base, sheetType: CombatSheetType.VEHICLE, sp, sdp } satisfies VehicleCombatTemplate;
     }
     case CombatSheetType.NPC: {
-      const maximumShots = parseInteger(data.maximumShots, "maximumShots", fileName, baseLine, errors) ?? 30;
+      const maximumShots = parseInteger(data.maximumShots, "maximumShots", fileName, baseLine, errors) ?? 0;
       const remainingShots =
         parseInteger(data.remainingShots, "remainingShots", fileName, baseLine, errors) ?? maximumShots;
       const remainingMagazines =
-        parseInteger(data.remainingMagazines, "remainingMagazines", fileName, baseLine, errors) ?? 3;
+        parseInteger(data.remainingMagazines, "remainingMagazines", fileName, baseLine, errors) ?? 0;
       const template: NpcCombatTemplate = {
         ...base,
         sheetType: CombatSheetType.NPC,
-        btm: parseInteger(data.btm, "btm", fileName, baseLine, errors) ?? 0,
+        btm: parseRequiredInteger(data.btm, "btm", fileName, baseLine, errors) ?? 0,
         maximumShots,
         remainingShots,
         remainingMagazines,
-        baseStunSave: parseInteger(data.baseStunSave, "baseStunSave", fileName, baseLine, errors) ?? 8,
+        baseStunSave: parseRequiredInteger(data.baseStunSave, "baseStunSave", fileName, baseLine, errors) ?? 0,
         totalDamage: parseInteger(data.totalDamage, "totalDamage", fileName, baseLine, errors) ?? 0,
         hasSandevistan:
           parseBoolean(data.hasSandevistan, "hasSandevistan", fileName, baseLine, errors) ?? false,
