@@ -272,7 +272,7 @@ describe("damage types", () => {
     expect(result.summary).toMatch(/ineffective/i);
   });
 
-  it("applies explosive to totalDamage without a body part", () => {
+  it("applies explosive to totalDamage without a body part, including BTM", () => {
     const { engine: damage } = engine([1]);
     const sheet = npc();
     const result = damage.resolveHit(
@@ -283,7 +283,8 @@ describe("damage types", () => {
     if (!next || !isNpcSheet(next)) {
       throw new Error("expected npc");
     }
-    expect(next.damage.totalDamage).toBe(7);
+    expect(result.damage?.btm).toBe(-2);
+    expect(next.damage.totalDamage).toBe(5);
     expect(next.body.find((part) => part.location === BodyLocation.TORSO)!.damage).toBe(0);
   });
 
