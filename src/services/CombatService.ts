@@ -1,4 +1,4 @@
-import { findCombatSheet, type CombatEncounter } from "../domain/combat/CombatEncounter";
+import { findCombatSheet, uniqueCombatantName, type CombatEncounter } from "../domain/combat/CombatEncounter";
 import { isNpcSheet, type CombatSheet } from "../domain/sheets/CombatSheet";
 import { setStatus } from "../domain/status/Status";
 import { StatusType } from "../domain/status/StatusType";
@@ -47,6 +47,10 @@ export class CombatService implements ICombatService {
     }
 
     const encounter = this.encounterService.getCurrent();
+    sheet.name = uniqueCombatantName(
+      sheet.name,
+      encounter.participants.map((participant) => participant.name),
+    );
     encounter.participants.push(sheet);
     this.initiativeService.insertCombatant(sheet.id);
 

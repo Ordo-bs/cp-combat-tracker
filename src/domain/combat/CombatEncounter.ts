@@ -29,3 +29,23 @@ export function findCombatSheet(
 export function isEncounterEmpty(encounter: CombatEncounter): boolean {
   return encounter.participants.length === 0;
 }
+
+const NUMBERED_NAME = /^(.*) \((\d+)\)$/;
+
+/** First copy keeps the name; later copies become "Name (2)", "Name (3)", … */
+export function uniqueCombatantName(requested: string, existingNames: readonly string[]): string {
+  const taken = new Set(existingNames);
+  if (!taken.has(requested)) {
+    return requested;
+  }
+
+  const numbered = NUMBERED_NAME.exec(requested);
+  const base = numbered?.[1] ?? requested;
+  let n = numbered ? Number(numbered[2]) + 1 : 2;
+  let candidate = `${base} (${n})`;
+  while (taken.has(candidate)) {
+    n += 1;
+    candidate = `${base} (${n})`;
+  }
+  return candidate;
+}

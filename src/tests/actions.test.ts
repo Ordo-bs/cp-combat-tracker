@@ -161,6 +161,12 @@ describe("CombatActionExecutor", () => {
       uiEffect: "open-hit-calculator",
     });
   });
+
+  it("numbers a cloned combatant when the name already exists", () => {
+    const result = combatService.cloneCombatant(combatantId);
+    expect(result.valid).toBe(true);
+    expect(repository.get()?.participants.map((sheet) => sheet.name)).toEqual(["Ganger", "Ganger (2)"]);
+  });
 });
 
 describe("SaveResolver", () => {
