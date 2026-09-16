@@ -458,6 +458,23 @@ describe("saves, taser, pain editor", () => {
     expect(hasStatus(next.statuses, StatusType.STUNNED)).toBe(false);
   });
 
+  it("does not clear stun when a hit stun save succeeds", () => {
+    const { engine: damage } = engine([1]);
+    const sheet = npc((s) => {
+      const torso = s.body.find((part) => part.location === BodyLocation.TORSO)!;
+      torso.sp = 0;
+      s.damage.btm = 0;
+    });
+    sheet.statuses = [{ type: StatusType.STUNNED, status: { type: StatusType.STUNNED, active: true } }];
+    const result = damage.resolveHit(sheet, hit({ targetId: sheet.id, rawDamage: 4 }));
+    const next = result.nextSheet;
+    if (!next) {
+      throw new Error("missing sheet");
+    }
+    expect(result.stun?.succeeded).toBe(true);
+    expect(hasStatus(next.statuses, StatusType.STUNNED)).toBe(true);
+  });
+
   it("skips automatic stun when Pain Editor is present but still allows explicit stun", () => {
     const { engine: damage } = engine([10]);
     const sheet = npc((s) => {

@@ -35,7 +35,7 @@ import {
   type VehicleCombatSheet,
 } from "../../domain/sheets/CombatSheet";
 import { BodyLocation, type BodyPart } from "../../domain/sheets/components";
-import { setStatus } from "../../domain/status/Status";
+import { hasStatus, setStatus } from "../../domain/status/Status";
 import { StatusType } from "../../domain/status/StatusType";
 import { resolveSave } from "../../domain/rules/resolvers/SaveResolver";
 import { generateId } from "../../util/uuid";
@@ -592,9 +592,16 @@ export class DamageEngine {
     const threshold = derived.modifiedStunSave + (request.additionalPenalty ?? 0) + penalty;
     const roll = this.dice.d10();
     const succeeded = resolveSave(roll, threshold).succeeded;
-    sheet.statuses = setStatus(sheet.statuses, StatusType.STUNNED, !succeeded);
+    if (!succeeded) {
+      sheet.statuses = setStatus(sheet.statuses, StatusType.STUNNED, true);
+    }
     result.diceRolls.push({ notation: "1d10", rolls: [roll], total: roll });
-    result.stun = { roll, threshold, succeeded, stunned: !succeeded };
+    result.stun = {
+      roll,
+      threshold,
+      succeeded,
+      stunned: hasStatus(sheet.statuses, StatusType.STUNNED),
+    };
     result.summary = `HIT — Taser — ${this.partName(part.location)}\n\nStun Save: ${roll} vs ${threshold} — ${succeeded ? "succeeded" : "failed"}.`;
     result.nextSheet = sheet;
     return result;
@@ -712,10 +719,17 @@ export class DamageEngine {
     const roll = this.dice.d10();
     const threshold = derived.modifiedStunSave;
     const succeeded = resolveSave(roll, threshold).succeeded;
-    sheet.statuses = setStatus(sheet.statuses, StatusType.STUNNED, !succeeded);
+    if (!succeeded) {
+      sheet.statuses = setStatus(sheet.statuses, StatusType.STUNNED, true);
+      result.events.push(this.event(CombatEvent.StunStateChanged, { combatantId: sheet.id, stunned: true }));
+    }
     result.diceRolls.push({ notation: "1d10", rolls: [roll], total: roll });
-    result.stun = { roll, threshold, succeeded, stunned: !succeeded };
-    result.events.push(this.event(CombatEvent.StunStateChanged, { combatantId: sheet.id, stunned: !succeeded }));
+    result.stun = {
+      roll,
+      threshold,
+      succeeded,
+      stunned: hasStatus(sheet.statuses, StatusType.STUNNED),
+    };
   }
 
   private rollBaseDeathSave(sheet: NpcCombatSheet): DeathOutcome {
