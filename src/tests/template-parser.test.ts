@@ -24,6 +24,7 @@ type: npc
 name: Maelstrom Ganger
 initiativeModifier: 7
 btm: -2
+baseStunSave: 8
 maximumShots: 30
 remainingMagazines: 3
 \`\`\``);
@@ -34,6 +35,39 @@ remainingMagazines: 3
     if (result.template?.sheetType === CombatSheetType.NPC) {
       expect(result.template.btm).toBe(-2);
       expect(result.template.remainingShots).toBe(30);
+    }
+  });
+
+  it("requires btm and baseStunSave on NPC templates", () => {
+    const missingBtm = parse(`\`\`\`combat-sheet
+type: npc
+name: Test
+baseStunSave: 8
+\`\`\``);
+    expect(missingBtm.success).toBe(false);
+    expect(missingBtm.errors.some((e) => e.field === "btm")).toBe(true);
+
+    const missingStun = parse(`\`\`\`combat-sheet
+type: npc
+name: Test
+btm: 0
+\`\`\``);
+    expect(missingStun.success).toBe(false);
+    expect(missingStun.errors.some((e) => e.field === "baseStunSave")).toBe(true);
+  });
+
+  it("defaults NPC ammo to empty", () => {
+    const result = parse(`\`\`\`combat-sheet
+type: npc
+name: Unarmed
+btm: 0
+baseStunSave: 8
+\`\`\``);
+    expect(result.success).toBe(true);
+    if (result.template?.sheetType === CombatSheetType.NPC) {
+      expect(result.template.maximumShots).toBe(0);
+      expect(result.template.remainingShots).toBe(0);
+      expect(result.template.remainingMagazines).toBe(0);
     }
   });
 
@@ -53,6 +87,8 @@ name: B
     const result = parse(`\`\`\`combat-sheet
 type: npc
 name: Test
+btm: 0
+baseStunSave: 8
 initiativeBonus: 3
 \`\`\``);
     expect(result.success).toBe(false);
@@ -72,6 +108,8 @@ initiative: 12
     const result = parse(`\`\`\`combat-sheet
 type: npc
 name: Test
+btm: 0
+baseStunSave: 8
 hasPainEditor: yes
 \`\`\``);
     expect(result.success).toBe(false);
@@ -81,6 +119,8 @@ hasPainEditor: yes
     const result = parse(`\`\`\`combat-sheet
 type: npc
 name: Test
+btm: 0
+baseStunSave: 8
 body.leftArm.cybernetic: false
 body.leftArm.sdp: 20
 \`\`\``);
@@ -91,6 +131,8 @@ body.leftArm.sdp: 20
     const result = parse(`\`\`\`combat-sheet
 type: npc
 name: Flat Body
+btm: 0
+baseStunSave: 8
 body.head.sp: 2
 body.torso.sp: 4
 body.leftArm.cybernetic: true
@@ -108,10 +150,26 @@ body.leftArm.hydraulicRams: true
     }
   });
 
+  it("defaults cybernetic SDP to 30", () => {
+    const result = parse(`\`\`\`combat-sheet
+type: npc
+name: Chrome
+btm: 0
+baseStunSave: 8
+body.leftArm.cybernetic: true
+\`\`\``);
+    expect(result.success).toBe(true);
+    if (result.template?.sheetType === CombatSheetType.NPC) {
+      expect(result.template.body[BodyLocation.LEFT_ARM].sdp).toBe(30);
+    }
+  });
+
   it("accepts tab-indented nested body fields", () => {
     const result = parse(`\`\`\`combat-sheet
 type: npc
 name: Tab Body
+btm: 0
+baseStunSave: 8
 body:
 \thead:
 \t\tsp: 2
@@ -127,6 +185,7 @@ body:
     const result = parse(`\`\`\`combat-sheet
 type: npc
 name: Test
+btm: 0
 baseStunSave: 10
 baseDeathSave: 10
 \`\`\``);
@@ -139,6 +198,7 @@ baseDeathSave: 10
     const result = parse(`\`\`\`combat-sheet
 type: npc
 name: Saves
+btm: 0
 baseStunSave: 12
 \`\`\``);
     expect(result.success).toBe(true);
@@ -155,6 +215,8 @@ baseStunSave: 12
 type: npc
 name: Ganger
 initiativeModifier: 5
+btm: 0
+baseStunSave: 8
 \`\`\``);
     expect(result.success).toBe(true);
     const sheet = factory.instantiateFromTemplate(result.template!);
@@ -173,6 +235,8 @@ initiativeModifier: 5
     const result = parse(`\`\`\`combat-sheet
 type: npc
 name: Hard Armor
+btm: 0
+baseStunSave: 8
 body.torso.sp: 12
 body.torso.isHardSp: true
 \`\`\``);
@@ -186,6 +250,8 @@ body.torso.isHardSp: true
     const result = parse(`\`\`\`combat-sheet
 type: npc
 name: Test
+btm: 0
+baseStunSave: 8
 body.rightLeg.acid: true
 \`\`\``);
     expect(result.success).toBe(false);

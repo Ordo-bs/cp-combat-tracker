@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CombatSheetType } from "../../domain/combat/CombatSheetType";
-import { BodyLocation } from "../../domain/sheets/components";
+import { BodyLocation, createCyberneticProperties } from "../../domain/sheets/components";
 import { isNpcSheet, isVehicleSheet, type NpcCombatSheet, type VehicleCombatSheet } from "../../domain/sheets/CombatSheet";
 import { StatusType } from "../../domain/status/StatusType";
 import { hasStatus } from "../../domain/status/Status";
@@ -353,6 +353,44 @@ describe("cybernetics and vehicles", () => {
     expect(arm.cyberneticProperties?.sdp).toBe(15);
     expect(next.damage.totalDamage).toBe(0);
     expect(result.stun).toBeUndefined();
+  });
+
+  it("disables a cybernetic part at 20 SDP damage and destroys it at 30", () => {
+    const { engine: damage } = engine();
+    const sheet = npc((s) => {
+      const arm = s.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
+      arm.sp = 0;
+      arm.cybernetic = true;
+      arm.cyberneticProperties = createCyberneticProperties();
+      s.damage.btm = 0;
+    });
+
+    const disabled = damage.resolveHit(
+      sheet,
+      hit({ targetId: sheet.id, rawDamage: 20, hitLocation: BodyLocation.RIGHT_ARM }),
+    );
+    const disabledSheet = disabled.nextSheet;
+    if (!disabledSheet || !isNpcSheet(disabledSheet)) {
+      throw new Error("expected npc");
+    }
+    const disabledArm = disabledSheet.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
+    expect(disabledArm.cyberneticProperties?.sdpDamageTaken).toBe(20);
+    expect(disabledArm.cyberneticProperties?.sdp).toBe(10);
+    expect(disabledArm.cyberneticProperties?.disabled).toBe(true);
+    expect(disabledArm.destroyed).toBe(false);
+
+    const destroyed = damage.resolveHit(
+      disabledSheet,
+      hit({ targetId: sheet.id, rawDamage: 10, hitLocation: BodyLocation.RIGHT_ARM }),
+    );
+    const destroyedSheet = destroyed.nextSheet;
+    if (!destroyedSheet || !isNpcSheet(destroyedSheet)) {
+      throw new Error("expected npc");
+    }
+    const destroyedArm = destroyedSheet.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
+    expect(destroyedArm.cyberneticProperties?.sdpDamageTaken).toBe(30);
+    expect(destroyedArm.cyberneticProperties?.sdp).toBe(0);
+    expect(destroyedArm.destroyed).toBe(true);
   });
 
   it("does not double cybernetic head damage", () => {
