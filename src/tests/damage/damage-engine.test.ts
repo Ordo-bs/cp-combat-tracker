@@ -322,6 +322,18 @@ describe("damage types", () => {
     expect(next.damage.totalDamage).toBe(0);
     expect(result.stun).toBeDefined();
   });
+
+  it("says stun damage did not penetrate when absorbed by armor", () => {
+    const { engine: damage } = engine();
+    const sheet = npc((s) => {
+      const torso = s.body.find((part) => part.location === BodyLocation.TORSO)!;
+      torso.sp = 20;
+    });
+    const result = damage.resolveHit(sheet, hit({ targetId: sheet.id, damageType: "stun", rawDamage: 8 }));
+    expect(result.summary).toMatch(/did not penetrate the armor/i);
+    expect(result.summary).not.toMatch(/hypothetical 0/);
+    expect(result.stun).toBeUndefined();
+  });
 });
 
 describe("cybernetics and vehicles", () => {

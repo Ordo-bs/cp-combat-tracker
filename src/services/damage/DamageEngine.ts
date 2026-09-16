@@ -366,7 +366,9 @@ export class DamageEngine {
     }
 
     if (request.damageType === "stun") {
-      result.summary = this.stunTypeSummary(location, hypotheticalFull, result);
+      result.summary = actuallyPenetrated
+        ? this.stunTypeSummary(location, hypotheticalFull, result)
+        : `HIT — ${this.partName(location)}\n\nStun damage did not penetrate the armor.`;
     } else if (!actuallyPenetrated) {
       result.summary = `HIT — ${this.partName(location)}\n\n${raw} damage absorbed by SP ${armour.effectiveSp}.`;
     } else if (cybernetic) {
