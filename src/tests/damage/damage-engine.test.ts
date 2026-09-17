@@ -206,6 +206,27 @@ describe("floorDamage / Regular pipeline", () => {
     expect(next.body.find((part) => part.location === BodyLocation.TORSO)!.destroyed).toBe(true);
     expect(result.massiveDamage).toBeUndefined();
   });
+
+  it("kills when cumulative damage destroys the head", () => {
+    const { engine: damage } = engine([1]);
+    const sheet = npc((s) => {
+      const head = s.body.find((part) => part.location === BodyLocation.HEAD)!;
+      head.sp = 0;
+      head.damage = 11;
+      s.damage.btm = 0;
+    });
+    const result = damage.resolveHit(
+      sheet,
+      hit({ targetId: sheet.id, rawDamage: 1, hitLocation: BodyLocation.HEAD }),
+    );
+    const next = result.nextSheet;
+    if (!next || !isNpcSheet(next)) {
+      throw new Error("expected npc");
+    }
+    expect(next.body.find((part) => part.location === BodyLocation.HEAD)!.destroyed).toBe(true);
+    expect(next.damage.isDead).toBe(true);
+    expect(result.massiveDamage?.instantDeath).toBe(true);
+  });
 });
 
 describe("damage types", () => {
@@ -510,6 +531,37 @@ describe("saves, taser, pain editor", () => {
       hitLocation: BodyLocation.TORSO,
     });
     expect(second.stun?.threshold).toBe(afterFirst.damage.baseStunSave - 2);
+  });
+
+  it("uses modifiedDeathSave for a regular death save", () => {
+    const { engine: damage } = engine([8]);
+    const sheet = npc((s) => {
+      s.damage.totalDamage = 20;
+      s.damage.baseDeathSave = 8;
+    });
+    const result = damage.resolveDeath(sheet, { targetId: sheet.id });
+    expect(result.death?.threshold).toBe(7);
+    expect(result.death?.usedBaseSave).toBeFalsy();
+    expect(result.death?.succeeded).toBe(false);
+    expect(result.summary).toMatch(/Death Save/);
+  });
+
+  it("rolls a mortal 0 death save against baseDeathSave without wound penalties", () => {
+    const { engine: damage } = engine([8]);
+    const sheet = npc((s) => {
+      s.damage.totalDamage = 20;
+      s.damage.baseDeathSave = 8;
+    });
+    const result = damage.resolveDeath(sheet, { targetId: sheet.id, useBaseSave: true });
+    expect(result.death?.threshold).toBe(8);
+    expect(result.death?.usedBaseSave).toBe(true);
+    expect(result.death?.succeeded).toBe(true);
+    expect(result.summary).toMatch(/Mortal 0 Save/);
+    const next = result.nextSheet;
+    if (!next || !isNpcSheet(next)) {
+      throw new Error("expected npc");
+    }
+    expect(next.damage.isDead).toBe(false);
   });
 });
 

@@ -8,7 +8,10 @@ import { actionFailure, actionSuccess } from "../CombatActionResult";
 export class PerformDeathSaveAction implements CombatAction<ResolutionResult> {
   readonly type = ActionType.PerformDeathSave;
 
-  constructor(readonly combatantId: string) {}
+  constructor(
+    readonly combatantId: string,
+    readonly useBaseSave = false,
+  ) {}
 
   execute(context: CombatActionContext) {
     const encounter = context.combatService.getEncounter();
@@ -17,7 +20,10 @@ export class PerformDeathSaveAction implements CombatAction<ResolutionResult> {
       return actionFailure<ResolutionResult>(["NPC combat sheet required."]);
     }
 
-    const result = context.combatService.resolveDeath({ targetId: this.combatantId });
+    const result = context.combatService.resolveDeath({
+      targetId: this.combatantId,
+      useBaseSave: this.useBaseSave,
+    });
     if (!result.success) {
       return actionFailure<ResolutionResult>(result.errors, result.warnings, result);
     }

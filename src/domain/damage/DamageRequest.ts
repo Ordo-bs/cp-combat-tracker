@@ -20,4 +20,6 @@ export interface StunRequest {
 
 export interface DeathRequest {
   targetId: string;
+  /** Roll against baseDeathSave, ignoring wound-state death penalties. */
+  useBaseSave?: boolean;
 }

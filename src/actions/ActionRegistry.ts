@@ -14,7 +14,7 @@ export type ActionRequest =
   | { type: typeof ActionType.ConsumeAmmo; combatantId: string; amount: number }
   | { type: typeof ActionType.ReloadWeapon; combatantId: string }
   | { type: typeof ActionType.PerformStunSave; combatantId: string; additionalPenalty?: number }
-  | { type: typeof ActionType.PerformDeathSave; combatantId: string }
+  | { type: typeof ActionType.PerformDeathSave; combatantId: string; useBaseSave?: boolean }
   | { type: typeof ActionType.OpenHitCalculator; combatantId: string }
   | { type: typeof ActionType.ResolveHit; request: DamageRequest }
   | { type: typeof ActionType.ApplyOngoingEffects; combatantId: string };
@@ -28,7 +28,7 @@ export function createAction(request: ActionRequest): CombatAction<unknown> {
     case ActionType.PerformStunSave:
       return new PerformStunSaveAction(request.combatantId, request.additionalPenalty ?? 0);
     case ActionType.PerformDeathSave:
-      return new PerformDeathSaveAction(request.combatantId);
+      return new PerformDeathSaveAction(request.combatantId, request.useBaseSave ?? false);
     case ActionType.OpenHitCalculator:
       return new OpenHitCalculatorAction(request.combatantId);
     case ActionType.ResolveHit:

@@ -1,7 +1,7 @@
 import type { UiElement } from "../types";
 import { hasStatus } from "../../domain/status/Status";
 import { StatusType } from "../../domain/status/StatusType";
-import { WoundState, WOUND_STATE_LABELS } from "../../domain/rules/WoundState";
+import { WoundState, woundStateCardLabel } from "../../domain/rules/WoundState";
 import { isNpcSheet, isPcSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
 import type { IDamageThresholdService } from "../../services/DamageThresholdService";
 
@@ -38,18 +38,22 @@ export function StatusBar({ sheet, damageThresholdService }: StatusBarProps): Ui
   }
 
   if (isPcSheet(sheet)) {
-    badges.push({
-      label: WOUND_STATE_LABELS[sheet.woundState].slice(0, 2).toUpperCase(),
-      title: WOUND_TOOLTIPS[sheet.woundState],
-    });
+    const label = woundStateCardLabel(sheet.woundState);
+    if (label) {
+      badges.push({ label, title: WOUND_TOOLTIPS[sheet.woundState] });
+    }
   }
 
   if (isNpcSheet(sheet)) {
-    const derived = damageThresholdService.getWoundState(sheet.damage.totalDamage);
-    badges.push({
-      label: WOUND_STATE_LABELS[derived].slice(0, 2).toUpperCase(),
-      title: WOUND_TOOLTIPS[derived],
-    });
+    const derived = damageThresholdService.derive(
+      sheet.damage.totalDamage,
+      sheet.damage.baseStunSave,
+      sheet.damage.baseDeathSave,
+    );
+    const label = woundStateCardLabel(derived.woundState, derived.deathPenalty);
+    if (label) {
+      badges.push({ label, title: WOUND_TOOLTIPS[derived.woundState] });
+    }
   }
 
   if (badges.length === 0) {

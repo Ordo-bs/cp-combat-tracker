@@ -129,4 +129,17 @@ describe("RuleTables", () => {
     expect(lookupDamageRule(9).wound).toBe(WoundState.CRITICAL);
     expect(lookupDamageRule(13).wound).toBe(WoundState.MORTAL);
   });
+
+  it("formats card wound tags from death save penalty", async () => {
+    const { lookupDamageRule } = await import("../domain/rules/RuleTables");
+    const { WoundState, woundStateCardLabel } = await import("../domain/rules/WoundState");
+
+    expect(woundStateCardLabel(WoundState.NONE)).toBeNull();
+    expect(woundStateCardLabel(WoundState.LIGHT)).toBe("LI");
+    expect(woundStateCardLabel(WoundState.MORTAL)).toBe("M");
+    expect(woundStateCardLabel(WoundState.MORTAL, lookupDamageRule(13).deathPenalty)).toBe("M0");
+    expect(woundStateCardLabel(WoundState.MORTAL, lookupDamageRule(17).deathPenalty)).toBe("M1");
+    expect(woundStateCardLabel(WoundState.MORTAL, lookupDamageRule(21).deathPenalty)).toBe("M2");
+    expect(woundStateCardLabel(WoundState.MORTAL, lookupDamageRule(57).deathPenalty)).toBe("M+");
+  });
 });
