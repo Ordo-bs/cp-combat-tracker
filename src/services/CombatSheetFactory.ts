@@ -4,7 +4,7 @@ import type { CombatTemplate, NpcCombatTemplate } from "../domain/combat/CombatT
 import { createRuntimeMetadataDefaults, type RuntimeMetadata } from "../domain/combat/RuntimeMetadata";
 import { WoundState } from "../domain/rules/WoundState";
 import { createEmptyStatusCollection } from "../domain/status/Status";
-import type { CombatSheet, NpcCombatSheet, PcCombatSheet, VehicleCombatSheet } from "../domain/sheets/CombatSheet";
+import { isNpcSheet, type CombatSheet, type NpcCombatSheet, type PcCombatSheet, type VehicleCombatSheet } from "../domain/sheets/CombatSheet";
 import {
   BodyLocation,
   createAmmoComponent,
@@ -19,6 +19,7 @@ import type { IDiceService } from "./DiceService";
 
 export interface ICombatSheetFactory {
   createDraft(type: CombatSheetType, name: string, initiative?: number): CombatSheet;
+  createEmptyDraft(type: CombatSheetType, name?: string, initiative?: number): CombatSheet;
   clone(source: CombatSheet, initiativeOption?: CloneInitiativeOption): CombatSheet;
   instantiateFromTemplate(template: CombatTemplate): CombatSheet;
 }
@@ -69,6 +70,17 @@ export class CombatSheetFactory implements ICombatSheetFactory {
           ongoingEffects: [],
         } satisfies VehicleCombatSheet;
     }
+  }
+
+  /** Draft for the + Add editor: mandatory stats start unset so the form is blank. */
+  createEmptyDraft(type: CombatSheetType, name = "", initiative = Number.NaN): CombatSheet {
+    const sheet = this.createDraft(type, name, initiative);
+    if (isNpcSheet(sheet)) {
+      sheet.damage.btm = Number.NaN;
+      sheet.damage.baseStunSave = Number.NaN;
+      sheet.damage.baseDeathSave = Number.NaN;
+    }
+    return sheet;
   }
 
   clone(source: CombatSheet, initiativeOption = CloneInitiativeOption.KEEP): CombatSheet {

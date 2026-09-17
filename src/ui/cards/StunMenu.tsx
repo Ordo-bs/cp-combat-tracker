@@ -4,7 +4,6 @@ import { ActionType, createAction } from "../../actions/ActionRegistry";
 import type { ResolutionResult } from "../../domain/damage/DamageResult";
 import { usePluginContext } from "../context/EncounterContext";
 import type { UiElement } from "../types";
-import { ResolutionMessage } from "./ResolutionMessage";
 
 interface StunMenuProps {
   combatantId: string;
@@ -14,7 +13,6 @@ interface StunMenuProps {
 export function StunMenu({ combatantId, onClose }: StunMenuProps): UiElement {
   const { actionExecutor } = usePluginContext();
   const [penalty, setPenalty] = useState("0");
-  const [result, setResult] = useState<ResolutionResult | null>(null);
 
   const apply = (): void => {
     const parsed = Number.parseInt(penalty, 10);
@@ -30,8 +28,10 @@ export function StunMenu({ combatantId, onClose }: StunMenuProps): UiElement {
       return;
     }
     const data = actionResult.data as ResolutionResult;
-    setResult(data);
-    new Notice(data.summary);
+    if (data.summary) {
+      new Notice(data.summary);
+    }
+    onClose();
   };
 
   return (
@@ -48,7 +48,6 @@ export function StunMenu({ combatantId, onClose }: StunMenuProps): UiElement {
           Close
         </button>
       </div>
-      {result && <ResolutionMessage result={result} />}
     </div>
   );
 }

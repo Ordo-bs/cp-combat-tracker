@@ -17,6 +17,7 @@ import {
   createCyberneticProperties,
   type BodyPart,
 } from "../../domain/sheets/components";
+import { serializeCombatSheetAsTemplate } from "../../infrastructure/parser/serializeCombatSheetTemplate";
 import type { CombatSheetEditorViewState } from "./editorTypes";
 import {
   BODY_LOCATION_LABELS,
@@ -28,6 +29,7 @@ import {
 import {
   CheckboxField,
   Field,
+  IconButton,
   NumberInput,
   ReadOnlyField,
   Section,
@@ -56,7 +58,7 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
   const [draftSheet, setDraftSheet] = useState<CombatSheet>(() =>
     viewState.draftSheet
       ? structuredClone(viewState.draftSheet)
-      : factory.createDraft(viewState.sheetType ?? CombatSheetType.NPC, "New Combatant", 0),
+      : factory.createEmptyDraft(viewState.sheetType ?? CombatSheetType.NPC),
   );
 
   const sheet = isDraft ? draftSheet : existingSheet;
@@ -121,6 +123,17 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
     onClose();
   };
 
+  const handleCopyTemplate = (): void => {
+    if (!sheet) {
+      return;
+    }
+    const markdown = serializeCombatSheetAsTemplate(sheet);
+    void navigator.clipboard.writeText(markdown).then(
+      () => new Notice("Combat sheet template copied."),
+      () => new Notice("Failed to copy template."),
+    );
+  };
+
   useEffect(() => {
     if (!isDraft && viewState.combatantId && !existingSheet) {
       new Notice("Combatant no longer exists.");
@@ -162,7 +175,7 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
                   onChange={(event) => {
                     const sheetType = event.target.value as CombatSheetType;
                     setDraftSheet(
-                      factory.createDraft(sheetType, draftSheet.name, draftSheet.initiative.pending),
+                      factory.createEmptyDraft(sheetType, draftSheet.name, draftSheet.initiative.pending),
                     );
                   }}
                 >
@@ -173,12 +186,17 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
                   ))}
                 </select>
               </Field>
-              <button type="button" className="mod-cta" onClick={handleConfirm} disabled={!validation.valid}>
-                Confirm
-              </button>
-              <button type="button" onClick={onClose}>
-                Cancel
-              </button>
+              <div className="cp-editor__header-buttons">
+                <IconButton
+                  icon="check"
+                  label="Confirm"
+                  cta
+                  onClick={handleConfirm}
+                  disabled={!validation.valid}
+                />
+                <IconButton icon="copy" label="Copy as template" onClick={handleCopyTemplate} />
+                <IconButton icon="x" label="Cancel" onClick={onClose} />
+              </div>
             </>
           ) : (
             <button type="button" onClick={onClose}>
@@ -210,7 +228,7 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
           label="Initiative"
           hint="Pending initiative; queue reorders at round wrap."
         >
-          <NumberInput value={sheet.initiative.pending} onChange={updateInitiative} min={0} />
+          <NumberInput value={sheet.initiative.pending} onChange={updateInitiative} min={0} allowEmpty={isDraft} />
         </Field>
       </Section>
 
@@ -253,16 +271,20 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
             <Field label="BTM">
               <select
                 className="cp-editor__input"
-                value={sheet.damage.btm}
+                value={Number.isInteger(sheet.damage.btm) ? String(sheet.damage.btm) : ""}
                 onChange={(event) =>
                   persistSheet({
                     ...sheet,
-                    damage: { ...sheet.damage, btm: Number.parseInt(event.target.value, 10) },
+                    damage: {
+                      ...sheet.damage,
+                      btm: event.target.value === "" ? Number.NaN : Number.parseInt(event.target.value, 10),
+                    },
                   })
                 }
               >
+                {isDraft && <option value="">Select BTM</option>}
                 {BTM_OPTIONS.map((value) => (
-                  <option key={value} value={value}>
+                  <option key={value} value={String(value)}>
                     {value}
                   </option>
                 ))}
@@ -280,21 +302,38 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
             <Field label="Base Stun Save">
               <NumberInput
                 value={sheet.damage.baseStunSave}
+                allowEmpty={isDraft}
                 onChange={(baseStunSave) =>
-                  persistSheet({ ...sheet, damage: { ...sheet.damage, baseStunSave } })
+                  persistSheet({
+                    ...sheet,
+                    damage: {
+                      ...sheet.damage,
+                      baseStunSave,
+                      baseDeathSave: Number.isInteger(sheet.damage.baseDeathSave)
+                        ? sheet.damage.baseDeathSave
+                        : baseStunSave,
+                    },
+                  })
                 }
               />
             </Field>
-            <ReadOnlyField label="Modified Stun Save" value={derived.modifiedStunSave === null ? "—" : String(derived.modifiedStunSave)} />
+            <ReadOnlyField
+              label="Modified Stun Save"
+              value={formatDerivedSave(derived.modifiedStunSave)}
+            />
             <Field label="Base Death Save">
               <NumberInput
                 value={sheet.damage.baseDeathSave}
+                allowEmpty={isDraft}
                 onChange={(baseDeathSave) =>
                   persistSheet({ ...sheet, damage: { ...sheet.damage, baseDeathSave } })
                 }
               />
             </Field>
-            <ReadOnlyField label="Modified Death Save" value={derived.modifiedDeathSave === null ? "—" : String(derived.modifiedDeathSave)} />
+            <ReadOnlyField
+              label="Modified Death Save"
+              value={formatDerivedSave(derived.modifiedDeathSave)}
+            />
             <ReadOnlyField label="Wound State" value={WOUND_STATE_LABELS[derived.woundState]} />
             <CheckboxField
               label="Dead"
@@ -394,6 +433,13 @@ export function CombatSheetEditor({ viewState, onClose }: CombatSheetEditorProps
       )}
     </div>
   );
+}
+
+function formatDerivedSave(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) {
+    return "—";
+  }
+  return String(value);
 }
 
 function BodyPartEditor({

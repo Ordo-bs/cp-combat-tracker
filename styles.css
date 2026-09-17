@@ -20,13 +20,20 @@
 
 .cp-combat-tracker__toolbar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
-.cp-combat-tracker__toolbar button {
-  flex: 1 1 auto;
-  min-width: 4.5rem;
+.cp-combat-tracker__toolbar-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cp-combat-tracker__toolbar-row > button:not(.cp-icon-button) {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .cp-combat-tracker__empty {
@@ -52,13 +59,11 @@
 }
 
 .cp-combat-tracker__dirty-indicator {
-  flex-basis: 100%;
   font-size: var(--font-ui-smaller);
   color: var(--text-warning);
 }
 
 .cp-combat-tracker__count {
-  flex-basis: 100%;
   font-size: var(--font-ui-smaller);
   color: var(--text-muted);
 }
@@ -338,6 +343,33 @@
 .cp-editor__header-actions .cp-editor__field {
   flex: 1 1 10rem;
   min-width: 8rem;
+}
+
+.cp-editor__header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.cp-icon-button,
+.cp-editor__icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.cp-icon-button-icon,
+.cp-icon-button-icon svg,
+.cp-editor__icon-button-icon,
+.cp-editor__icon-button-icon svg {
+  display: flex;
+  width: 18px;
+  height: 18px;
 }
 
 .cp-editor__validation-banner {

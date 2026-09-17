@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { useLayoutEffect, useRef } from "react";
+import { setIcon } from "obsidian";
 import type { UiElement } from "../types";
 
 interface FieldProps {
@@ -24,19 +26,24 @@ interface NumberInputProps {
   onChange: (value: number) => void;
   disabled?: boolean;
   min?: number;
+  allowEmpty?: boolean;
 }
 
-export function NumberInput({ value, onChange, disabled, min }: NumberInputProps): UiElement {
+export function NumberInput({ value, onChange, disabled, min, allowEmpty }: NumberInputProps): UiElement {
   return (
     <input
       type="number"
       className="cp-editor__input"
-      value={Number.isFinite(value) ? value : 0}
+      value={Number.isFinite(value) ? value : allowEmpty ? "" : 0}
       min={min}
       disabled={disabled}
       onChange={(event) => {
         const parsed = Number.parseInt(event.target.value, 10);
-        onChange(Number.isNaN(parsed) ? 0 : parsed);
+        if (Number.isNaN(parsed)) {
+          onChange(allowEmpty ? Number.NaN : 0);
+          return;
+        }
+        onChange(parsed);
       }}
     />
   );
@@ -102,5 +109,37 @@ export function Section({ title, children }: SectionProps): UiElement {
       <h3 className="cp-editor__section-title">{title}</h3>
       <div className="cp-editor__section-body">{children}</div>
     </section>
+  );
+}
+
+interface IconButtonProps {
+  icon: string;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  cta?: boolean;
+  title?: string;
+}
+
+export function IconButton({ icon, label, onClick, disabled, cta, title }: IconButtonProps): UiElement {
+  const iconRef = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    if (iconRef.current) {
+      setIcon(iconRef.current, icon);
+    }
+  });
+
+  return (
+    <button
+      type="button"
+      className={`cp-icon-button${cta ? " mod-cta" : ""}`}
+      aria-label={label}
+      title={title ?? label}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <span ref={iconRef} className="cp-icon-button-icon" aria-hidden="true" />
+    </button>
   );
 }
