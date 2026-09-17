@@ -1,7 +1,8 @@
 import { Notice } from "obsidian";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActionType, createAction } from "../../actions/ActionRegistry";
 import type { CombatActionResult } from "../../actions/CombatActionResult";
+import type { ResolutionResult } from "../../domain/damage/DamageResult";
 import { isNpcSheet, isVehicleSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
 import { CloneInitiativeOption } from "../../services/CombatSheetFactory";
 import { openExistingCombatSheetEditor } from "../../infrastructure/obsidian/openCombatSheetEditor";
@@ -22,19 +23,24 @@ function runAction(
   onSuccess?.(result);
 }
 
+function noticeSummary(result: CombatActionResult<unknown>): void {
+  const data = result.data as ResolutionResult | undefined;
+  if (data?.summary) {
+    new Notice(data.summary);
+  }
+}
+
 interface NpcControlsProps {
   sheet: CombatSheet;
   onOpenHitCalculator: () => void;
-  onOpenStun: () => void;
-  onOpenDeath: () => void;
+  onOpenStunWithModifier: () => void;
   isDead: boolean;
 }
 
 export function NpcControls({
   sheet,
   onOpenHitCalculator,
-  onOpenStun,
-  onOpenDeath,
+  onOpenStunWithModifier,
   isDead,
 }: NpcControlsProps): UiElement | null {
   const { actionExecutor } = usePluginContext();
@@ -121,13 +127,122 @@ export function NpcControls({
         >
           Hit
         </button>
-        <button type="button" onClick={onOpenStun} disabled={isDead} title={isDead ? "Target is dead." : undefined}>
+        <button
+          type="button"
+          onClick={() =>
+            runAction(
+              actionExecutor.execute.bind(actionExecutor),
+              { type: ActionType.PerformStunSave, combatantId: sheet.id },
+              noticeSummary,
+            )
+          }
+          disabled={isDead}
+          title={isDead ? "Target is dead." : undefined}
+        >
           Stun
         </button>
-        <button type="button" onClick={onOpenDeath} disabled={isDead} title={isDead ? "Target is dead." : undefined}>
+        <button
+          type="button"
+          onClick={() =>
+            runAction(
+              actionExecutor.execute.bind(actionExecutor),
+              { type: ActionType.PerformDeathSave, combatantId: sheet.id },
+              noticeSummary,
+            )
+          }
+          disabled={isDead}
+          title={isDead ? "Target is dead." : undefined}
+        >
           Death
         </button>
+        <CardOverflowMenu combatantId={sheet.id} isDead={isDead} onOpenStun={onOpenStunWithModifier} />
       </div>
+    </div>
+  );
+}
+
+interface CardOverflowMenuProps {
+  combatantId: string;
+  isDead: boolean;
+  onOpenStun: () => void;
+}
+
+export function CardOverflowMenu({ combatantId, isDead, onOpenStun }: CardOverflowMenuProps): UiElement {
+  const { actionExecutor } = usePluginContext();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onPointerDown = (event: MouseEvent): void => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const rollMortalZero = (): void => {
+    setOpen(false);
+    runAction(
+      actionExecutor.execute.bind(actionExecutor),
+      { type: ActionType.PerformDeathSave, combatantId, useBaseSave: true },
+      (result) => {
+        noticeSummary(result);
+      },
+    );
+  };
+
+  return (
+    <div className="cp-card__overflow" ref={rootRef}>
+      <button
+        type="button"
+        className="cp-card__overflow-trigger"
+        aria-label="More actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        title="More actions"
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="cp-card__overflow-menu" role="menu">
+          <button
+            type="button"
+            role="menuitem"
+            disabled={isDead}
+            title={isDead ? "Target is dead." : undefined}
+            onClick={() => {
+              setOpen(false);
+              onOpenStun();
+            }}
+          >
+            Stun save with modifier
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={isDead}
+            title={isDead ? "Target is dead." : undefined}
+            onClick={rollMortalZero}
+          >
+            Mortal 0 save
+          </button>
+        </div>
+      )}
     </div>
   );
 }

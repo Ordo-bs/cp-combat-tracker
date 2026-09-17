@@ -1,6 +1,6 @@
 import type { UiElement } from "../types";
 import { memo, useCallback, useRef, useState } from "react";
-import { isNpcSheet, isVehicleSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
+import { isNpcSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
 import { usePluginContext } from "../context/EncounterContext";
 import {
   CardActions,
@@ -11,7 +11,6 @@ import {
 import { StatusBar } from "./StatusBar";
 import { HitCalculator } from "./HitCalculator";
 import { StunMenu } from "./StunMenu";
-import { DeathMenu } from "./DeathMenu";
 import { PendingEffects } from "./PendingEffects";
 import { BodyPartStatusStrip } from "./BodyPartStatusStrip";
 
@@ -28,18 +27,22 @@ export const CombatCard = memo(function CombatCard({
   const [expanded, setExpanded] = useState(false);
   const [showHit, setShowHit] = useState(false);
   const [showStun, setShowStun] = useState(false);
-  const [showDeath, setShowDeath] = useState(false);
   const expandedRef = useRef<HTMLDivElement>(null);
 
-  const openPanel = useCallback((panel: "hit" | "stun" | "death"): void => {
+  const openPanel = useCallback((panel: "hit" | "stun"): void => {
     setExpanded(true);
     setShowHit(panel === "hit");
     setShowStun(panel === "stun");
-    setShowDeath(panel === "death");
     requestAnimationFrame(() => {
       expandedRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       expandedRef.current?.focus();
     });
+  }, []);
+
+  const closePanels = useCallback((): void => {
+    setShowHit(false);
+    setShowStun(false);
+    setExpanded(false);
   }, []);
 
   const isDead = isNpcSheet(sheet) && sheet.damage.isDead;
@@ -60,25 +63,21 @@ export const CombatCard = memo(function CombatCard({
       <NpcControls
         sheet={sheet}
         onOpenHitCalculator={() => openPanel("hit")}
-        onOpenStun={() => openPanel("stun")}
-        onOpenDeath={() => openPanel("death")}
+        onOpenStunWithModifier={() => openPanel("stun")}
         isDead={isDead}
       />
       <VehicleControls sheet={sheet} onOpenHitCalculator={() => openPanel("hit")} />
 
-      {expanded && (showHit || showStun || showDeath) && (
+      {expanded && (showHit || showStun) && (
         <div
           ref={expandedRef}
           className="cp-card__expanded"
           tabIndex={-1}
           aria-label="Hit calculator"
         >
-          {showHit && <HitCalculator sheet={sheet} />}
+          {showHit && <HitCalculator sheet={sheet} onApplied={closePanels} />}
           {showStun && isNpcSheet(sheet) && !isDead && (
-            <StunMenu combatantId={sheet.id} onClose={() => setShowStun(false)} />
-          )}
-          {showDeath && isNpcSheet(sheet) && !isDead && (
-            <DeathMenu combatantId={sheet.id} onClose={() => setShowDeath(false)} />
+            <StunMenu combatantId={sheet.id} onClose={closePanels} />
           )}
         </div>
       )}

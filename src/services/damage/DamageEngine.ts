@@ -152,32 +152,40 @@ export class DamageEngine {
       return fail(["Death action is disabled for dead NPCs."]);
     }
     const working = structuredClone(sheet);
-    const derived = this.thresholds.derive(
-      working.damage.totalDamage,
-      working.damage.baseStunSave,
-      working.damage.baseDeathSave,
-    );
-    if (derived.modifiedDeathSave === null) {
-      return fail(["Death Save penalty is not defined for this total damage."]);
+    const useBaseSave = request.useBaseSave === true;
+    let death: DeathOutcome;
+    if (useBaseSave) {
+      death = this.rollBaseDeathSave(working);
+    } else {
+      const derived = this.thresholds.derive(
+        working.damage.totalDamage,
+        working.damage.baseStunSave,
+        working.damage.baseDeathSave,
+      );
+      if (derived.modifiedDeathSave === null) {
+        return fail(["Death Save penalty is not defined for this total damage."]);
+      }
+      const roll = this.dice.d10();
+      const threshold = derived.modifiedDeathSave;
+      const succeeded = resolveSave(roll, threshold).succeeded;
+      death = { roll, threshold, succeeded, dead: !succeeded };
     }
-    const threshold = derived.modifiedDeathSave;
-    const roll = this.dice.d10();
-    const succeeded = resolveSave(roll, threshold).succeeded;
     const result = emptyResult();
-    result.diceRolls.push({ notation: "1d10", rolls: [roll], total: roll });
-    if (!succeeded) {
+    result.diceRolls.push({ notation: "1d10", rolls: [death.roll], total: death.roll });
+    if (!death.succeeded) {
       working.damage.isDead = true;
       terminateEffectsOnDeath(working);
     }
-    result.death = { roll, threshold, succeeded, dead: working.damage.isDead };
+    death = { ...death, dead: working.damage.isDead };
+    result.death = death;
     result.nextSheet = working;
     result.events.push(
       this.event(CombatEvent.DeathStateChanged, { combatantId: working.id, isDead: working.damage.isDead }),
     );
-    result.summary = succeeded
-      ? `Death Save: ${roll} vs ${threshold} — succeeded.`
-      : `Death Save: ${roll} vs ${threshold} — failed. Target is DEAD.`;
-    void request;
+    const label = useBaseSave ? "Mortal 0 Save" : "Death Save";
+    result.summary = death.succeeded
+      ? `${label}: ${death.roll} vs ${death.threshold} — succeeded.`
+      : `${label}: ${death.roll} vs ${death.threshold} — failed. Target is DEAD.`;
     return this.finish(result);
   }
 
@@ -681,6 +689,16 @@ export class DamageEngine {
       part.destroyed = true;
       result.destroyedBodyParts.push(part.location);
       result.events.push(this.event(CombatEvent.BodyPartDestroyed, { combatantId: sheet.id, location: part.location }));
+      if (part.location === BodyLocation.HEAD) {
+        sheet.damage.isDead = true;
+        terminateEffectsOnDeath(sheet);
+        result.massiveDamage = {
+          bodyPart: part.location,
+          destroyed: true,
+          instantDeath: true,
+        };
+        result.events.push(this.event(CombatEvent.DeathStateChanged, { combatantId: sheet.id, isDead: true }));
+      }
     }
   }
 

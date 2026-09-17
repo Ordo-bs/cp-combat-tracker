@@ -150,6 +150,30 @@ describe("CombatActionExecutor", () => {
     expect(sheet && hasStatus(sheet.statuses, StatusType.DEAD)).toBe(true);
   });
 
+  it("rolls mortal 0 death save against baseDeathSave", () => {
+    const encounter = repository.get();
+    const participant = encounter?.participants[0];
+    if (!participant || !isNpcSheet(participant)) {
+      throw new Error("expected npc");
+    }
+    participant.damage.totalDamage = 20;
+    participant.damage.baseDeathSave = 8;
+    vi.spyOn(diceService, "d10").mockReturnValue(8);
+
+    const result = executor.execute(
+      createAction({ type: ActionType.PerformDeathSave, combatantId, useBaseSave: true }),
+    );
+
+    expect(result.success).toBe(true);
+    const death = (result.data as { death?: { threshold: number; succeeded: boolean; usedBaseSave?: boolean } } | undefined)
+      ?.death;
+    expect(death?.threshold).toBe(8);
+    expect(death?.succeeded).toBe(true);
+    expect(death?.usedBaseSave).toBe(true);
+    const sheet = repository.get()?.participants[0];
+    expect(sheet && hasStatus(sheet.statuses, StatusType.DEAD)).toBe(false);
+  });
+
   it("returns ui effect for OpenHitCalculatorAction", () => {
     const result = executor.execute(
       createAction({ type: ActionType.OpenHitCalculator, combatantId }),

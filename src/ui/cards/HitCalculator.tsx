@@ -10,13 +10,13 @@ import { isNpcSheet, isVehicleSheet, type CombatSheet } from "../../domain/sheet
 import { getVisibleHitFields } from "../../services/damage/hitFields";
 import { usePluginContext } from "../context/EncounterContext";
 import type { UiElement } from "../types";
-import { ResolutionMessage } from "./ResolutionMessage";
 
 interface HitCalculatorProps {
   sheet: CombatSheet;
+  onApplied?: () => void;
 }
 
-export function HitCalculator({ sheet }: HitCalculatorProps): UiElement | null {
+export function HitCalculator({ sheet, onApplied }: HitCalculatorProps): UiElement | null {
   const { actionExecutor, damageTypeRegistry } = usePluginContext();
   const isVehicle = isVehicleSheet(sheet);
   const [damageType, setDamageType] = useState<DamageType>("regular");
@@ -26,7 +26,6 @@ export function HitCalculator({ sheet }: HitCalculatorProps): UiElement | null {
   const [damageReduction, setDamageReduction] = useState("0");
   const [additionalPenalty, setAdditionalPenalty] = useState("0");
   const [fireSource, setFireSource] = useState<FireSource>("flamethrower");
-  const [lastResult, setLastResult] = useState<ResolutionResult | null>(null);
 
   const definition = useMemo(
     () => damageTypeRegistry.get(damageType).definition,
@@ -60,16 +59,14 @@ export function HitCalculator({ sheet }: HitCalculatorProps): UiElement | null {
     );
     if (!result.success) {
       new Notice(result.errors[0] ?? "Hit failed.");
-      if (result.data) {
-        setLastResult(result.data as ResolutionResult);
-      }
       return;
     }
     const data = result.data as ResolutionResult;
-    setLastResult(data);
-    if (data.summary) {
-      new Notice(data.summary.split("\n")[0] ?? "Hit resolved.");
+    const message = [data.summary, ...data.reminders].filter(Boolean).join("\n");
+    if (message) {
+      new Notice(message);
     }
+    onApplied?.();
   };
 
   if (!isNpcSheet(sheet) && !isVehicle) {
@@ -161,8 +158,6 @@ export function HitCalculator({ sheet }: HitCalculatorProps): UiElement | null {
       <button type="button" className="mod-cta" onClick={apply}>
         Apply
       </button>
-
-      {lastResult && <ResolutionMessage result={lastResult} />}
     </div>
   );
 }
