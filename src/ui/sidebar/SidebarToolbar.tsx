@@ -1,4 +1,5 @@
 import { Notice } from "obsidian";
+import { blurActiveElement, openConfirmModal } from "../../infrastructure/obsidian/ConfirmModal";
 import type { UiElement } from "../types";
 import {
   getActiveSheet,
@@ -50,11 +51,18 @@ export function SidebarToolbar(): UiElement {
     if (!combatantsExist) {
       return;
     }
-    const confirmed = confirm("Clear the encounter? Player characters will be kept.");
-    if (!confirmed) {
-      return;
-    }
-    encounterService.clearEncounter();
+    blurActiveElement();
+    void openConfirmModal(app, {
+      title: "Clear encounter",
+      message: "Clear the encounter? Player characters will be kept.",
+      confirmText: "Clear",
+      destructive: true,
+    }).then((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+      encounterService.clearEncounter();
+    });
   };
 
   return (
