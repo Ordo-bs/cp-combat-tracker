@@ -5,6 +5,11 @@ import type { CombatActionResult } from "../../actions/CombatActionResult";
 import type { ResolutionResult } from "../../domain/damage/DamageResult";
 import { isNpcSheet, isVehicleSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
 import { CloneInitiativeOption } from "../../services/CombatSheetFactory";
+import {
+  blurActiveElement,
+  blurIfDetached,
+  openConfirmModal,
+} from "../../infrastructure/obsidian/ConfirmModal";
 import { openExistingCombatSheetEditor } from "../../infrastructure/obsidian/openCombatSheetEditor";
 import { useObsidianApp } from "../context/AppContext";
 import { usePluginContext } from "../context/EncounterContext";
@@ -300,14 +305,22 @@ export function CardActions({
   };
 
   const handleDelete = (): void => {
-    const confirmed = confirm(`Remove "${sheet.name}" from encounter?`);
-    if (!confirmed) {
-      return;
-    }
-    const result = combatService.removeCombatant(sheet.id);
-    if (!result.valid) {
-      new Notice(result.errors.join(" "));
-    }
+    blurActiveElement();
+    void openConfirmModal(app, {
+      title: "Remove combatant",
+      message: `Remove "${sheet.name}" from encounter?`,
+      confirmText: "Remove",
+      destructive: true,
+    }).then((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+      const result = combatService.removeCombatant(sheet.id);
+      if (!result.valid) {
+        new Notice(result.errors.join(" "));
+      }
+      requestAnimationFrame(blurIfDetached);
+    });
   };
 
   const handleCopy = (): void => {
