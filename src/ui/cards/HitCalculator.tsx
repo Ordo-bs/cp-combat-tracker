@@ -20,7 +20,7 @@ export function HitCalculator({ sheet, onApplied }: HitCalculatorProps): UiEleme
   const { actionExecutor, damageTypeRegistry } = usePluginContext();
   const isVehicle = isVehicleSheet(sheet);
   const [damageType, setDamageType] = useState<DamageType>("regular");
-  const [rawDamage, setRawDamage] = useState("0");
+  const [rawDamage, setRawDamage] = useState("");
   const [location, setLocation] = useState<BodyLocation>(BodyLocation.TORSO);
   const [locationB, setLocationB] = useState<BodyLocation>(BodyLocation.HEAD);
   const [damageReduction, setDamageReduction] = useState("0");
@@ -42,7 +42,7 @@ export function HitCalculator({ sheet, onApplied }: HitCalculatorProps): UiEleme
     const request = {
       targetId: sheet.id,
       damageType,
-      rawDamage: fields.hitDamage ? Number.parseInt(rawDamage, 10) : undefined,
+      rawDamage: fields.hitDamage ? parseOptionalInteger(rawDamage) : undefined,
       hitLocation: fields.hitLocation || fields.fireLocationCount === 1 ? location : undefined,
       damageReduction: fields.damageReduction ? Number.parseInt(damageReduction, 10) : undefined,
       additionalPenalty: fields.additionalPenalty ? Number.parseInt(additionalPenalty, 10) : undefined,
@@ -160,4 +160,9 @@ export function HitCalculator({ sheet, onApplied }: HitCalculatorProps): UiEleme
       </button>
     </div>
   );
+}
+
+function parseOptionalInteger(value: string): number | undefined {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) ? parsed : undefined;
 }

@@ -1,11 +1,13 @@
-import { Plugin, Notice } from "obsidian";
+import { Plugin } from "obsidian";
 import {
   COMBAT_SHEET_EDITOR_VIEW_TYPE,
   INITIATIVE_SIDEBAR_VIEW_TYPE,
 } from "./constants/viewTypes";
 import { CombatSheetEditorView } from "./infrastructure/obsidian/CombatSheetEditorView";
 import { registerCombatSheetBlockProcessor } from "./infrastructure/obsidian/CombatSheetBlockProcessor";
-import { openDraftCombatSheetEditor } from "./infrastructure/obsidian/openCombatSheetEditor";
+// @deprecated Used by the removed From Note command.
+// import { Notice } from "obsidian";
+// import { openDraftCombatSheetEditor } from "./infrastructure/obsidian/openCombatSheetEditor";
 import { InitiativeSidebarView } from "./infrastructure/obsidian/InitiativeSidebarView";
 import { PluginContext } from "./plugin/PluginContext";
 
@@ -37,26 +39,28 @@ export default class CPCombatTrackerPlugin extends Plugin {
       },
     });
 
-    this.addCommand({
-      id: "add-combatant-from-note",
-      name: "Add combatant from current note",
-      callback: () => {
-        void this.addCombatantFromActiveNote();
-      },
-    });
+    // @deprecated From Note was removed from the combat tracker toolbar.
+    // this.addCommand({
+    //   id: "add-combatant-from-note",
+    //   name: "Add combatant from current note",
+    //   callback: () => {
+    //     void this.addCombatantFromActiveNote();
+    //   },
+    // });
 
     registerCombatSheetBlockProcessor(this, this.pluginContext);
   }
 
-  private async addCombatantFromActiveNote(): Promise<void> {
-    const { templateService } = this.pluginContext;
-    const { sheet, errors } = await templateService.instantiateFromActiveNote(this.app);
-    if (errors.length > 0 || !sheet) {
-      new Notice(errors[0] ?? "Failed to parse template.");
-      return;
-    }
-    await openDraftCombatSheetEditor(this.app, sheet);
-  }
+  // @deprecated Used by the removed From Note toolbar button / command.
+  // private async addCombatantFromActiveNote(): Promise<void> {
+  //   const { templateService } = this.pluginContext;
+  //   const { sheet, errors } = await templateService.instantiateFromActiveNote(this.app);
+  //   if (errors.length > 0 || !sheet) {
+  //     new Notice(errors[0] ?? "Failed to parse template.");
+  //     return;
+  //   }
+  //   await openDraftCombatSheetEditor(this.app, sheet);
+  // }
 
   async onunload(): Promise<void> {
     this.app.workspace.detachLeavesOfType(INITIATIVE_SIDEBAR_VIEW_TYPE);

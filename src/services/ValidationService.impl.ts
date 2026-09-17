@@ -10,9 +10,10 @@ import {
 
 const ALLOWED_BTM = new Set([0, -1, -2, -3, -4, -5]);
 
-export class ValidationService implements IValidationService {  validateInitiative(value: number): ValidationResult {
+export class ValidationService implements IValidationService {
+  validateInitiative(value: number): ValidationResult {
     if (!Number.isInteger(value)) {
-      return validationFailure(["Initiative must be an integer."]);
+      return validationFailure(["Initiative is required."]);
     }
     if (value < 0) {
       return validationFailure(["Initiative cannot be negative."]);
@@ -53,6 +54,9 @@ export class ValidationService implements IValidationService {  validateInitiati
   }
 
   validateBtm(value: number): ValidationResult {
+    if (!Number.isInteger(value)) {
+      return validationFailure(["BTM is required."]);
+    }
     if (!ALLOWED_BTM.has(value)) {
       return validationFailure(["BTM must be between 0 and -5."]);
     }
@@ -97,10 +101,10 @@ export class ValidationService implements IValidationService {  validateInitiati
       errors.push(...this.validateDamage(sheet.damage.totalDamage).errors);
       errors.push(...this.validateBtm(sheet.damage.btm).errors);
       if (!Number.isInteger(sheet.damage.baseStunSave)) {
-        errors.push("Base stun save must be an integer.");
+        errors.push("Base stun save is required.");
       }
       if (!Number.isInteger(sheet.damage.baseDeathSave)) {
-        errors.push("Base death save must be an integer.");
+        errors.push("Base death save is required.");
       }
       errors.push(
         ...this.validateAmmo(

@@ -29,4 +29,15 @@ describe("Combat sheet editor validation", () => {
     sheet.damage.btm = -7;
     expect(validation.validateCombatSheet(sheet).valid).toBe(false);
   });
+
+  it("keeps + Add NPC drafts invalid until mandatory fields are filled", () => {
+    const sheet = factory.createEmptyDraft(CombatSheetType.NPC);
+    expect(validation.validateCombatSheet(sheet).valid).toBe(false);
+    if (!isNpcSheet(sheet)) throw new Error("expected NPC");
+    expect(sheet.name).toBe("");
+    expect(Number.isInteger(sheet.initiative.pending)).toBe(false);
+    expect(Number.isInteger(sheet.damage.btm)).toBe(false);
+    expect(Number.isInteger(sheet.damage.baseStunSave)).toBe(false);
+    expect(Number.isInteger(sheet.damage.baseDeathSave)).toBe(false);
+  });
 });

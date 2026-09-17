@@ -11,8 +11,10 @@ import type { TFile } from "obsidian";
 export interface ITemplateService {
   parseMarkdown(content: string, file: TFile): TemplateParseResult;
   parseBlockSource(yamlSource: string, file: TFile): TemplateParseResult;
+  /** @deprecated From Note was removed from the combat tracker toolbar. */
   parseActiveNoteAsync(app: App): Promise<TemplateParseResult>;
   instantiateFromBlock(yamlSource: string, file: TFile): { sheet?: CombatSheet; errors: string[] };
+  /** @deprecated From Note was removed from the combat tracker toolbar. */
   instantiateFromActiveNote(app: App): Promise<{ sheet?: CombatSheet; errors: string[] }>;
 }
 
@@ -43,6 +45,7 @@ export class TemplateService implements ITemplateService {
     return { sheet: this.factory.instantiateFromTemplate(result.template), errors: [] };
   }
 
+  /** @deprecated From Note was removed from the combat tracker toolbar. */
   async parseActiveNoteAsync(app: App): Promise<TemplateParseResult> {
     const file = app.workspace.getActiveFile();
     if (!file || file.extension !== "md") {
@@ -57,6 +60,7 @@ export class TemplateService implements ITemplateService {
     return this.parseMarkdown(markdown, file);
   }
 
+  /** @deprecated From Note was removed from the combat tracker toolbar. */
   async instantiateFromActiveNote(app: App): Promise<{ sheet?: CombatSheet; errors: string[] }> {
     const result = await this.parseActiveNoteAsync(app);
     if (!result.success || !result.template) {
