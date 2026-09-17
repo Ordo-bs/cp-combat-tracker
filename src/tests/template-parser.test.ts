@@ -115,16 +115,41 @@ hasPainEditor: yes
     expect(result.success).toBe(false);
   });
 
-  it("rejects sdp without cybernetic", () => {
+  it("rejects body sdp as an unknown field", () => {
     const result = parse(`\`\`\`combat-sheet
 type: npc
 name: Test
 btm: 0
 baseStunSave: 8
-body.leftArm.cybernetic: false
+body.leftArm.cybernetic: true
 body.leftArm.sdp: 20
 \`\`\``);
     expect(result.success).toBe(false);
+    expect(result.errors.some((error) => error.message.includes("Unknown body field"))).toBe(true);
+  });
+
+  it("rejects rams, joints, and myomar on head and torso", () => {
+    const head = parse(`\`\`\`combat-sheet
+type: npc
+name: Test
+btm: 0
+baseStunSave: 8
+body.head.cybernetic: true
+body.head.hydraulicRams: true
+\`\`\``);
+    expect(head.success).toBe(false);
+    expect(head.errors.some((error) => error.message.includes("Unknown body field"))).toBe(true);
+
+    const torso = parse(`\`\`\`combat-sheet
+type: npc
+name: Test
+btm: 0
+baseStunSave: 8
+body.torso.cybernetic: true
+body.torso.thickenedMyomar: true
+\`\`\``);
+    expect(torso.success).toBe(false);
+    expect(torso.errors.some((error) => error.message.includes("Unknown body field"))).toBe(true);
   });
 
   it("parses flat body fields without indentation", () => {
@@ -136,7 +161,6 @@ baseStunSave: 8
 body.head.sp: 2
 body.torso.sp: 4
 body.leftArm.cybernetic: true
-body.leftArm.sdp: 25
 body.leftArm.hydraulicRams: true
 \`\`\``);
 
@@ -145,12 +169,11 @@ body.leftArm.hydraulicRams: true
       expect(result.template.body[BodyLocation.HEAD].sp).toBe(2);
       expect(result.template.body[BodyLocation.TORSO].sp).toBe(4);
       expect(result.template.body[BodyLocation.LEFT_ARM].cybernetic).toBe(true);
-      expect(result.template.body[BodyLocation.LEFT_ARM].sdp).toBe(25);
       expect(result.template.body[BodyLocation.LEFT_ARM].hydraulicRams).toBe(true);
     }
   });
 
-  it("defaults cybernetic SDP to 30", () => {
+  it("parses a cybernetic part without an SDP field", () => {
     const result = parse(`\`\`\`combat-sheet
 type: npc
 name: Chrome
@@ -160,7 +183,7 @@ body.leftArm.cybernetic: true
 \`\`\``);
     expect(result.success).toBe(true);
     if (result.template?.sheetType === CombatSheetType.NPC) {
-      expect(result.template.body[BodyLocation.LEFT_ARM].sdp).toBe(30);
+      expect(result.template.body[BodyLocation.LEFT_ARM].cybernetic).toBe(true);
     }
   });
 

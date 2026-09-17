@@ -10,7 +10,7 @@ import type {
   TemplateParseResult,
   VehicleCombatTemplate,
 } from "../../domain/combat/CombatTemplate";
-import { DEFAULT_CYBERNETIC_SDP } from "../../domain/sheets/components";
+import { BodyLocation } from "../../domain/sheets/components";
 import { extractCombatSheetBlocks } from "./extractCombatSheetBlock";
 import { findInvalidFlatBodyKeys, normalizeFlatBodyFields } from "./normalizeFlatBodyFields";
 import { parseYamlDocument } from "./parseYaml";
@@ -23,6 +23,7 @@ import {
   RUNTIME_FORBIDDEN_FIELDS,
   sheetTypeFromYaml,
 } from "./templateSchema";
+import { allowsCyberneticLimbOptions, CYBERNETIC_LIMB_OPTION_FIELDS } from "../../domain/damage/sheetEffects";
 
 export interface ParseTemplateOptions {
   markdown: string;
@@ -121,6 +122,7 @@ function validateUnknownFields(
 
 function parseBodyPart(
   raw: unknown,
+  location: BodyLocation,
   fieldPath: string,
   fileName: string,
   baseLine: number,
@@ -136,18 +138,18 @@ function parseBodyPart(
   }
 
   const partData = raw as Record<string, unknown>;
+  const limbOptions = allowsCyberneticLimbOptions(location);
   for (const key of Object.keys(partData)) {
+    if (!limbOptions && (CYBERNETIC_LIMB_OPTION_FIELDS as readonly string[]).includes(key)) {
+      pushError(errors, fileName, `Unknown body field "${key}" in ${fieldPath}.`, baseLine, fieldPath);
+      continue;
+    }
     if (!BODY_PART_FIELDS.has(key)) {
       pushError(errors, fileName, `Unknown body field "${key}" in ${fieldPath}.`, baseLine, fieldPath);
     }
   }
 
   const cybernetic = parseBoolean(partData.cybernetic, `${fieldPath}.cybernetic`, fileName, baseLine, errors) ?? false;
-  const sdp = parseInteger(partData.sdp, `${fieldPath}.sdp`, fileName, baseLine, errors);
-
-  if (!cybernetic && sdp !== undefined && sdp !== 0) {
-    pushError(errors, fileName, `${fieldPath}.sdp requires cybernetic: true.`, baseLine, fieldPath);
-  }
 
   return {
     sp: parseInteger(partData.sp, `${fieldPath}.sp`, fileName, baseLine, errors) ?? defaults.sp,
@@ -155,17 +157,19 @@ function parseBodyPart(
     destroyed: parseBoolean(partData.destroyed, `${fieldPath}.destroyed`, fileName, baseLine, errors) ?? defaults.destroyed,
     isHardSp: parseBoolean(partData.isHardSp, `${fieldPath}.isHardSp`, fileName, baseLine, errors) ?? defaults.isHardSp,
     cybernetic,
-    sdp: cybernetic ? (sdp ?? DEFAULT_CYBERNETIC_SDP) : 0,
     disabled: parseBoolean(partData.disabled, `${fieldPath}.disabled`, fileName, baseLine, errors) ?? defaults.disabled,
-    hydraulicRams:
-      parseBoolean(partData.hydraulicRams, `${fieldPath}.hydraulicRams`, fileName, baseLine, errors) ??
-      defaults.hydraulicRams,
-    reinforcedJoints:
-      parseBoolean(partData.reinforcedJoints, `${fieldPath}.reinforcedJoints`, fileName, baseLine, errors) ??
-      defaults.reinforcedJoints,
-    thickenedMyomar:
-      parseBoolean(partData.thickenedMyomar, `${fieldPath}.thickenedMyomar`, fileName, baseLine, errors) ??
-      defaults.thickenedMyomar,
+    hydraulicRams: limbOptions
+      ? parseBoolean(partData.hydraulicRams, `${fieldPath}.hydraulicRams`, fileName, baseLine, errors) ??
+        defaults.hydraulicRams
+      : false,
+    reinforcedJoints: limbOptions
+      ? parseBoolean(partData.reinforcedJoints, `${fieldPath}.reinforcedJoints`, fileName, baseLine, errors) ??
+        defaults.reinforcedJoints
+      : false,
+    thickenedMyomar: limbOptions
+      ? parseBoolean(partData.thickenedMyomar, `${fieldPath}.thickenedMyomar`, fileName, baseLine, errors) ??
+        defaults.thickenedMyomar
+      : false,
     empShielding:
       parseBoolean(partData.empShielding, `${fieldPath}.empShielding`, fileName, baseLine, errors) ??
       defaults.empShielding,
@@ -195,7 +199,7 @@ function parseBody(
   }
 
   for (const [yamlKey, location] of Object.entries(BODY_YAML_KEYS)) {
-    body[location] = parseBodyPart(bodyData[yamlKey], `body.${yamlKey}`, fileName, baseLine, errors);
+    body[location] = parseBodyPart(bodyData[yamlKey], location, `body.${yamlKey}`, fileName, baseLine, errors);
   }
 
   return body;

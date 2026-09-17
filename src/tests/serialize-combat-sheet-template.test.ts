@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { CombatSheetType } from "../domain/combat/CombatSheetType";
-import { BodyLocation, DEFAULT_CYBERNETIC_SDP, createCyberneticProperties } from "../domain/sheets/components";
+import { BodyLocation, createCyberneticProperties } from "../domain/sheets/components";
 import { isNpcSheet } from "../domain/sheets/CombatSheet";
+import { remainingCyberneticSdp } from "../domain/damage/sheetEffects";
 import { parseCombatTemplate } from "../infrastructure/parser/CombatSheetParser";
 import { serializeCombatSheetAsTemplate } from "../infrastructure/parser/serializeCombatSheetTemplate";
 import { CombatSheetFactory } from "../services/CombatSheetFactory";
@@ -33,7 +34,7 @@ describe("serializeCombatSheetAsTemplate", () => {
     head.sp = 2;
     const arm = sheet.body.find((part) => part.location === BodyLocation.LEFT_ARM)!;
     arm.cybernetic = true;
-    arm.cyberneticProperties = { ...createCyberneticProperties(), sdp: 25, hydraulicRams: true };
+    arm.cyberneticProperties = { ...createCyberneticProperties(), hydraulicRams: true };
 
     const markdown = serializeCombatSheetAsTemplate(sheet);
     expect(markdown).toContain("```combat-sheet");
@@ -54,8 +55,14 @@ describe("serializeCombatSheetAsTemplate", () => {
     expect(parsed.template.remainingShots).toBe(30);
     expect(parsed.template.body[BodyLocation.HEAD].sp).toBe(2);
     expect(parsed.template.body[BodyLocation.LEFT_ARM].cybernetic).toBe(true);
-    expect(parsed.template.body[BodyLocation.LEFT_ARM].sdp).toBe(25);
     expect(parsed.template.body[BodyLocation.LEFT_ARM].hydraulicRams).toBe(true);
+
+    const instantiated = factory.instantiateFromTemplate(parsed.template);
+    if (!isNpcSheet(instantiated)) {
+      throw new Error("expected NPC");
+    }
+    const instantiatedArm = instantiated.body.find((part) => part.location === BodyLocation.LEFT_ARM)!;
+    expect(remainingCyberneticSdp(BodyLocation.LEFT_ARM, instantiatedArm.cyberneticProperties!)).toBe(40);
   });
 
   it("omits default cybernetic SDP", () => {
@@ -68,10 +75,22 @@ describe("serializeCombatSheetAsTemplate", () => {
     const arm = sheet.body.find((part) => part.location === BodyLocation.LEFT_ARM)!;
     arm.cybernetic = true;
     arm.cyberneticProperties = createCyberneticProperties();
-    expect(arm.cyberneticProperties.sdp).toBe(DEFAULT_CYBERNETIC_SDP);
+    expect(arm.cyberneticProperties.hydraulicRams).toBe(false);
 
     const markdown = serializeCombatSheetAsTemplate(sheet);
     expect(markdown).toContain("body.leftArm.cybernetic: true");
     expect(markdown).not.toContain("body.leftArm.sdp");
+
+    const parsed = parseSerialized(markdown);
+    expect(parsed.success).toBe(true);
+    if (parsed.template?.sheetType !== CombatSheetType.NPC) {
+      throw new Error("expected NPC template");
+    }
+    const instantiated = factory.instantiateFromTemplate(parsed.template);
+    if (!isNpcSheet(instantiated)) {
+      throw new Error("expected NPC");
+    }
+    const instantiatedArm = instantiated.body.find((part) => part.location === BodyLocation.LEFT_ARM)!;
+    expect(remainingCyberneticSdp(BodyLocation.LEFT_ARM, instantiatedArm.cyberneticProperties!)).toBe(30);
   });
 });

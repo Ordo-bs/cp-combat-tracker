@@ -19,6 +19,7 @@ import type { AcidEffect, FireEffect, OngoingEffect } from "../../domain/damage/
 import {
   cyberneticDestroyedThreshold,
   cyberneticDisabledThreshold,
+  remainingCyberneticSdp,
   getOngoingEffects,
   hasUnresolvedPendingEffects,
   pendingEffectsForActivation,
@@ -255,7 +256,9 @@ export class DamageEngine {
     const part = requireBodyPart(sheet, location);
     const rule = this.registry.get(request.damageType);
     const raw = request.rawDamage ?? 0;
-    const sdp = part.cybernetic ? part.cyberneticProperties?.sdp : undefined;
+    const sdp = part.cybernetic && part.cyberneticProperties
+      ? remainingCyberneticSdp(part.location, part.cyberneticProperties)
+      : undefined;
 
     let armour: ArmourContext = {
       sp: part.sp,
@@ -634,12 +637,12 @@ export class DamageEngine {
     }
 
     if (cybernetic && part.cyberneticProperties) {
-      const applied = Math.max(0, damage);
-      part.cyberneticProperties.sdp = Math.max(0, part.cyberneticProperties.sdp - applied);
-      part.cyberneticProperties.sdpDamageTaken += applied;
       const props = part.cyberneticProperties;
-      const disabledAt = cyberneticDisabledThreshold(props.hydraulicRams, props.reinforcedJoints, props.thickenedMyomar);
-      const destroyedAt = cyberneticDestroyedThreshold(props.hydraulicRams, props.reinforcedJoints, props.thickenedMyomar);
+      const remaining = remainingCyberneticSdp(part.location, props);
+      const applied = Math.min(Math.max(0, damage), remaining);
+      props.sdpDamageTaken += applied;
+      const disabledAt = cyberneticDisabledThreshold(part.location, props);
+      const destroyedAt = cyberneticDestroyedThreshold(part.location, props);
       if (props.sdpDamageTaken >= disabledAt) {
         props.disabled = true;
         result.disabledBodyParts.push(part.location);

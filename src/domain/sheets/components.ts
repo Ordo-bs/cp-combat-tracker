@@ -28,7 +28,6 @@ export const CYBERNETIC_DISABLE_SDP_DAMAGE = 20;
 export const CYBERNETIC_DESTROY_SDP_DAMAGE = 30;
 
 export interface CyberneticProperties {
-  sdp: number;
   sdpDamageTaken: number;
   disabled: boolean;
   hydraulicRams: boolean;
@@ -39,7 +38,6 @@ export interface CyberneticProperties {
 
 export function createCyberneticProperties(): CyberneticProperties {
   return {
-    sdp: DEFAULT_CYBERNETIC_SDP,
     sdpDamageTaken: 0,
     disabled: false,
     hydraulicRams: false,

@@ -15,6 +15,7 @@ import { StunMenu } from "./StunMenu";
 import { AdrenalBoosterMenu } from "./AdrenalBoosterMenu";
 import { PendingEffects } from "./PendingEffects";
 import { BodyPartStatusStrip } from "./BodyPartStatusStrip";
+import { CardExpandedDetails } from "./CardExpandedDetails";
 
 interface CombatCardProps {
   sheet: CombatSheet;
@@ -47,8 +48,21 @@ export const CombatCard = memo(function CombatCard({
     setShowHit(false);
     setShowStun(false);
     setShowAdrenal(false);
-    setExpanded(false);
   }, []);
+
+  const collapse = useCallback((): void => {
+    closePanels();
+    setExpanded(false);
+  }, [closePanels]);
+
+  const toggleExpand = useCallback((): void => {
+    if (expanded) {
+      collapse();
+      return;
+    }
+    closePanels();
+    setExpanded(true);
+  }, [expanded, collapse, closePanels]);
 
   const isDead = isNpcSheet(sheet) && sheet.damage.isDead;
 
@@ -74,19 +88,22 @@ export const CombatCard = memo(function CombatCard({
       <PcControls sheet={sheet} onOpenAdrenal={() => openPanel("adrenal")} />
       <VehicleControls sheet={sheet} onOpenHitCalculator={() => openPanel("hit")} />
 
-      {expanded && (showHit || showStun || showAdrenal) && (
+      {expanded && (
         <div
           ref={expandedRef}
           className="cp-card__expanded"
           tabIndex={-1}
-          aria-label="Hit calculator"
+          aria-label={showHit ? "Hit calculator" : "Card details"}
         >
-          {showHit && <HitCalculator sheet={sheet} onApplied={closePanels} />}
+          {showHit && <HitCalculator sheet={sheet} onApplied={collapse} onClose={collapse} />}
           {showStun && isNpcSheet(sheet) && !isDead && (
-            <StunMenu combatantId={sheet.id} onClose={closePanels} />
+            <StunMenu combatantId={sheet.id} onClose={collapse} />
           )}
           {showAdrenal && isPcSheet(sheet) && (
-            <AdrenalBoosterMenu combatantId={sheet.id} onClose={closePanels} />
+            <AdrenalBoosterMenu combatantId={sheet.id} onClose={collapse} />
+          )}
+          {!showHit && !showStun && !showAdrenal && (
+            <CardExpandedDetails sheet={sheet} damageThresholdService={damageThresholdService} />
           )}
         </div>
       )}
@@ -94,7 +111,7 @@ export const CombatCard = memo(function CombatCard({
       <CardActions
         sheet={sheet}
         isExpanded={expanded}
-        onToggleExpand={() => setExpanded((value) => !value)}
+        onToggleExpand={toggleExpand}
       />
     </article>
   );

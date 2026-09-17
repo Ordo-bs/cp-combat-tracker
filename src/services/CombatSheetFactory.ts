@@ -15,6 +15,7 @@ import {
   createTrackerComponent,
 } from "../domain/sheets/components";
 import { generateId } from "../util/uuid";
+import { allowsCyberneticLimbOptions } from "../domain/damage/sheetEffects";
 import type { IDiceService } from "./DiceService";
 
 export interface ICombatSheetFactory {
@@ -183,11 +184,10 @@ export class CombatSheetFactory implements ICombatSheetFactory {
         cyberneticProperties: source.cybernetic
           ? {
               ...createCyberneticProperties(),
-              sdp: source.sdp,
               disabled: source.disabled,
-              hydraulicRams: source.hydraulicRams,
-              reinforcedJoints: source.reinforcedJoints,
-              thickenedMyomar: source.thickenedMyomar,
+              hydraulicRams: allowsCyberneticLimbOptions(part.location) && source.hydraulicRams,
+              reinforcedJoints: allowsCyberneticLimbOptions(part.location) && source.reinforcedJoints,
+              thickenedMyomar: allowsCyberneticLimbOptions(part.location) && source.thickenedMyomar,
               empShielding: source.empShielding,
             }
           : undefined,

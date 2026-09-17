@@ -16,7 +16,14 @@ import {
   BodyLocation,
   createCyberneticProperties,
   type BodyPart,
+  type CyberneticProperties,
 } from "../../domain/sheets/components";
+import {
+  allowsCyberneticLimbOptions,
+  clampCyberneticSdpDamage,
+  cyberneticMaxSdp,
+  remainingCyberneticSdp,
+} from "../../domain/damage/sheetEffects";
 import { serializeCombatSheetAsTemplate } from "../../infrastructure/parser/serializeCombatSheetTemplate";
 import type { CombatSheetEditorViewState } from "./editorTypes";
 import {
@@ -442,6 +449,12 @@ function formatDerivedSave(value: number | null): string {
   return String(value);
 }
 
+function withCyber(part: BodyPart, patch: Partial<CyberneticProperties>): BodyPart {
+  const cyberneticProperties = { ...part.cyberneticProperties!, ...patch };
+  clampCyberneticSdpDamage(part.location, cyberneticProperties);
+  return { ...part, cyberneticProperties };
+}
+
 function BodyPartEditor({
   part,
   onChange,
@@ -490,79 +503,45 @@ function BodyPartEditor({
       />
       {part.cybernetic && part.cyberneticProperties && (
         <div className="cp-editor__cybernetic">
-          <Field label="SDP">
-            <NumberInput
-              value={part.cyberneticProperties.sdp}
-              onChange={(sdp) =>
-                onChange({
-                  ...part,
-                  cyberneticProperties: { ...part.cyberneticProperties!, sdp },
-                })
-              }
-              min={0}
-            />
-          </Field>
+          <ReadOnlyField
+            label="SDP"
+            value={`${remainingCyberneticSdp(part.location, part.cyberneticProperties)} / ${cyberneticMaxSdp(part.location, part.cyberneticProperties)}`}
+          />
           <Field label="SDP damage taken">
             <NumberInput
               value={part.cyberneticProperties.sdpDamageTaken}
-              onChange={(sdpDamageTaken) =>
-                onChange({
-                  ...part,
-                  cyberneticProperties: { ...part.cyberneticProperties!, sdpDamageTaken },
-                })
-              }
+              onChange={(sdpDamageTaken) => onChange(withCyber(part, { sdpDamageTaken }))}
               min={0}
             />
           </Field>
           <CheckboxField
             label="Disabled"
             checked={part.cyberneticProperties.disabled}
-            onChange={(disabled) =>
-              onChange({
-                ...part,
-                cyberneticProperties: { ...part.cyberneticProperties!, disabled },
-              })
-            }
+            onChange={(disabled) => onChange(withCyber(part, { disabled }))}
           />
-          <CheckboxField
-            label="Hydraulic Rams"
-            checked={part.cyberneticProperties.hydraulicRams}
-            onChange={(hydraulicRams) =>
-              onChange({
-                ...part,
-                cyberneticProperties: { ...part.cyberneticProperties!, hydraulicRams },
-              })
-            }
-          />
-          <CheckboxField
-            label="Reinforced Joints"
-            checked={part.cyberneticProperties.reinforcedJoints}
-            onChange={(reinforcedJoints) =>
-              onChange({
-                ...part,
-                cyberneticProperties: { ...part.cyberneticProperties!, reinforcedJoints },
-              })
-            }
-          />
-          <CheckboxField
-            label="Thickened Myomar"
-            checked={part.cyberneticProperties.thickenedMyomar}
-            onChange={(thickenedMyomar) =>
-              onChange({
-                ...part,
-                cyberneticProperties: { ...part.cyberneticProperties!, thickenedMyomar },
-              })
-            }
-          />
+          {allowsCyberneticLimbOptions(part.location) && (
+            <>
+              <CheckboxField
+                label="Hydraulic Rams"
+                checked={part.cyberneticProperties.hydraulicRams}
+                onChange={(hydraulicRams) => onChange(withCyber(part, { hydraulicRams }))}
+              />
+              <CheckboxField
+                label="Reinforced Joints"
+                checked={part.cyberneticProperties.reinforcedJoints}
+                onChange={(reinforcedJoints) => onChange(withCyber(part, { reinforcedJoints }))}
+              />
+              <CheckboxField
+                label="Thickened Myomar"
+                checked={part.cyberneticProperties.thickenedMyomar}
+                onChange={(thickenedMyomar) => onChange(withCyber(part, { thickenedMyomar }))}
+              />
+            </>
+          )}
           <CheckboxField
             label="EMP Shielding"
             checked={part.cyberneticProperties.empShielding}
-            onChange={(empShielding) =>
-              onChange({
-                ...part,
-                cyberneticProperties: { ...part.cyberneticProperties!, empShielding },
-              })
-            }
+            onChange={(empShielding) => onChange(withCyber(part, { empShielding }))}
           />
         </div>
       )}
