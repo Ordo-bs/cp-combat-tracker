@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { ActionType, createAction } from "../../actions/ActionRegistry";
 import type { CombatActionResult } from "../../actions/CombatActionResult";
 import type { ResolutionResult } from "../../domain/damage/DamageResult";
-import { isNpcSheet, isVehicleSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
+import { isNpcSheet, isPcSheet, isVehicleSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
+import { StatusType } from "../../domain/status/StatusType";
+import { speedwareActive, speedwareFlagAvailable } from "../../domain/status/speedware";
 import { CloneInitiativeOption } from "../../services/CombatSheetFactory";
 import {
   blurActiveElement,
@@ -13,6 +15,8 @@ import {
 import { openExistingCombatSheetEditor } from "../../infrastructure/obsidian/openCombatSheetEditor";
 import { useObsidianApp } from "../context/AppContext";
 import { usePluginContext } from "../context/EncounterContext";
+import { toastCombatResult } from "../toastCombatResult";
+import type { CombatLogService } from "../../services/CombatLogService";
 import type { UiElement } from "../types";
 
 function runAction(
@@ -28,11 +32,13 @@ function runAction(
   onSuccess?.(result);
 }
 
-function noticeSummary(result: CombatActionResult<unknown>): void {
+function noticeSummary(
+  combatLog: CombatLogService,
+  combatantId: string,
+  result: CombatActionResult<unknown>,
+): void {
   const data = result.data as ResolutionResult | undefined;
-  if (data?.summary) {
-    new Notice(data.summary);
-  }
+  toastCombatResult(combatLog, combatantId, data?.summary);
 }
 
 interface NpcControlsProps {
@@ -48,7 +54,7 @@ export function NpcControls({
   onOpenStunWithModifier,
   isDead,
 }: NpcControlsProps): UiElement | null {
-  const { actionExecutor } = usePluginContext();
+  const { actionExecutor, combatLogService } = usePluginContext();
 
   if (!isNpcSheet(sheet)) {
     return null;
@@ -138,7 +144,7 @@ export function NpcControls({
             runAction(
               actionExecutor.execute.bind(actionExecutor),
               { type: ActionType.PerformStunSave, combatantId: sheet.id },
-              noticeSummary,
+              (result) => noticeSummary(combatLogService, sheet.id, result),
             )
           }
           disabled={isDead}
@@ -152,7 +158,7 @@ export function NpcControls({
             runAction(
               actionExecutor.execute.bind(actionExecutor),
               { type: ActionType.PerformDeathSave, combatantId: sheet.id },
-              noticeSummary,
+              (result) => noticeSummary(combatLogService, sheet.id, result),
             )
           }
           disabled={isDead}
@@ -160,22 +166,42 @@ export function NpcControls({
         >
           Death
         </button>
-        <CardOverflowMenu combatantId={sheet.id} isDead={isDead} onOpenStun={onOpenStunWithModifier} />
+        <CardOverflowMenu
+          sheet={sheet}
+          isDead={isDead}
+          showNpcSaves
+          onOpenStun={onOpenStunWithModifier}
+        />
       </div>
     </div>
   );
 }
 
 interface CardOverflowMenuProps {
-  combatantId: string;
+  sheet: CombatSheet;
   isDead: boolean;
-  onOpenStun: () => void;
+  showNpcSaves?: boolean;
+  alignStart?: boolean;
+  onOpenStun?: () => void;
+  onOpenAdrenal?: () => void;
 }
 
-export function CardOverflowMenu({ combatantId, isDead, onOpenStun }: CardOverflowMenuProps): UiElement {
-  const { actionExecutor } = usePluginContext();
+export function CardOverflowMenu({
+  sheet,
+  isDead,
+  showNpcSaves = false,
+  alignStart = false,
+  onOpenStun,
+  onOpenAdrenal,
+}: CardOverflowMenuProps): UiElement {
+  const { actionExecutor, combatLogService } = usePluginContext();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const combatantId = sheet.id;
+  const sandyOn = speedwareActive(sheet, StatusType.SANDEVISTAN);
+  const boostOn = speedwareActive(sheet, StatusType.ADRENAL_BOOSTER);
+  const showSandy = speedwareFlagAvailable(sheet, StatusType.SANDEVISTAN);
+  const showBoost = speedwareFlagAvailable(sheet, StatusType.ADRENAL_BOOSTER);
 
   useEffect(() => {
     if (!open) {
@@ -205,13 +231,31 @@ export function CardOverflowMenu({ combatantId, isDead, onOpenStun }: CardOverfl
       actionExecutor.execute.bind(actionExecutor),
       { type: ActionType.PerformDeathSave, combatantId, useBaseSave: true },
       (result) => {
-        noticeSummary(result);
+        noticeSummary(combatLogService, combatantId, result);
       },
     );
   };
 
+  const activateSandy = (): void => {
+    setOpen(false);
+    runAction(
+      actionExecutor.execute.bind(actionExecutor),
+      { type: ActionType.ActivateSandevistan, combatantId },
+      (result) => noticeSummary(combatLogService, combatantId, result),
+    );
+  };
+
+  const activateNpcBoost = (): void => {
+    setOpen(false);
+    runAction(
+      actionExecutor.execute.bind(actionExecutor),
+      { type: ActionType.ActivateAdrenalBooster, combatantId },
+      (result) => noticeSummary(combatLogService, combatantId, result),
+    );
+  };
+
   return (
-    <div className="cp-card__overflow" ref={rootRef}>
+    <div className={`cp-card__overflow${alignStart ? " cp-card__overflow--align-start" : ""}`} ref={rootRef}>
       <button
         type="button"
         className="cp-card__overflow-trigger"
@@ -225,29 +269,80 @@ export function CardOverflowMenu({ combatantId, isDead, onOpenStun }: CardOverfl
       </button>
       {open && (
         <div className="cp-card__overflow-menu" role="menu">
-          <button
-            type="button"
-            role="menuitem"
-            disabled={isDead}
-            title={isDead ? "Target is dead." : undefined}
-            onClick={() => {
-              setOpen(false);
-              onOpenStun();
-            }}
-          >
-            Stun save with modifier
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            disabled={isDead}
-            title={isDead ? "Target is dead." : undefined}
-            onClick={rollMortalZero}
-          >
-            Mortal 0 save
-          </button>
+          {showNpcSaves && onOpenStun && (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                disabled={isDead}
+                title={isDead ? "Target is dead." : undefined}
+                onClick={() => {
+                  setOpen(false);
+                  onOpenStun();
+                }}
+              >
+                Stun save with modifier
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                disabled={isDead}
+                title={isDead ? "Target is dead." : undefined}
+                onClick={rollMortalZero}
+              >
+                Mortal 0 save
+              </button>
+            </>
+          )}
+          {showSandy && (
+            <button
+              type="button"
+              role="menuitem"
+              disabled={isDead || sandyOn}
+              title={isDead ? "Target is dead." : sandyOn ? "Sandevistan is already active." : undefined}
+              onClick={activateSandy}
+            >
+              Sandevistan
+            </button>
+          )}
+          {showBoost && (
+            <button
+              type="button"
+              role="menuitem"
+              disabled={isDead || boostOn}
+              title={isDead ? "Target is dead." : boostOn ? "Adrenal booster is already active." : undefined}
+              onClick={() => {
+                setOpen(false);
+                if (isNpcSheet(sheet)) {
+                  activateNpcBoost();
+                  return;
+                }
+                onOpenAdrenal?.();
+              }}
+            >
+              Adrenal booster
+            </button>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+interface PcControlsProps {
+  sheet: CombatSheet;
+  onOpenAdrenal: () => void;
+}
+
+export function PcControls({ sheet, onOpenAdrenal }: PcControlsProps): UiElement | null {
+  if (!isPcSheet(sheet)) {
+    return null;
+  }
+  return (
+    <div className="cp-card__npc-controls">
+      <div className="cp-card__button-row">
+        <CardOverflowMenu sheet={sheet} isDead={false} alignStart onOpenAdrenal={onOpenAdrenal} />
+      </div>
     </div>
   );
 }

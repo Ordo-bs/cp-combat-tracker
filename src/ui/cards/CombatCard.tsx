@@ -1,16 +1,18 @@
 import type { UiElement } from "../types";
 import { memo, useCallback, useRef, useState } from "react";
-import { isNpcSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
+import { isNpcSheet, isPcSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
 import { usePluginContext } from "../context/EncounterContext";
 import {
   CardActions,
   InitiativeEditor,
   NpcControls,
+  PcControls,
   VehicleControls,
 } from "./CombatCardParts";
 import { StatusBar } from "./StatusBar";
 import { HitCalculator } from "./HitCalculator";
 import { StunMenu } from "./StunMenu";
+import { AdrenalBoosterMenu } from "./AdrenalBoosterMenu";
 import { PendingEffects } from "./PendingEffects";
 import { BodyPartStatusStrip } from "./BodyPartStatusStrip";
 
@@ -27,12 +29,14 @@ export const CombatCard = memo(function CombatCard({
   const [expanded, setExpanded] = useState(false);
   const [showHit, setShowHit] = useState(false);
   const [showStun, setShowStun] = useState(false);
+  const [showAdrenal, setShowAdrenal] = useState(false);
   const expandedRef = useRef<HTMLDivElement>(null);
 
-  const openPanel = useCallback((panel: "hit" | "stun"): void => {
+  const openPanel = useCallback((panel: "hit" | "stun" | "adrenal"): void => {
     setExpanded(true);
     setShowHit(panel === "hit");
     setShowStun(panel === "stun");
+    setShowAdrenal(panel === "adrenal");
     requestAnimationFrame(() => {
       expandedRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       expandedRef.current?.focus();
@@ -42,6 +46,7 @@ export const CombatCard = memo(function CombatCard({
   const closePanels = useCallback((): void => {
     setShowHit(false);
     setShowStun(false);
+    setShowAdrenal(false);
     setExpanded(false);
   }, []);
 
@@ -66,9 +71,10 @@ export const CombatCard = memo(function CombatCard({
         onOpenStunWithModifier={() => openPanel("stun")}
         isDead={isDead}
       />
+      <PcControls sheet={sheet} onOpenAdrenal={() => openPanel("adrenal")} />
       <VehicleControls sheet={sheet} onOpenHitCalculator={() => openPanel("hit")} />
 
-      {expanded && (showHit || showStun) && (
+      {expanded && (showHit || showStun || showAdrenal) && (
         <div
           ref={expandedRef}
           className="cp-card__expanded"
@@ -78,6 +84,9 @@ export const CombatCard = memo(function CombatCard({
           {showHit && <HitCalculator sheet={sheet} onApplied={closePanels} />}
           {showStun && isNpcSheet(sheet) && !isDead && (
             <StunMenu combatantId={sheet.id} onClose={closePanels} />
+          )}
+          {showAdrenal && isPcSheet(sheet) && (
+            <AdrenalBoosterMenu combatantId={sheet.id} onClose={closePanels} />
           )}
         </div>
       )}

@@ -4,9 +4,11 @@ import {
   findCombatSheet,
 } from "../domain/combat/CombatEncounter";
 import { commitInitiative, markInitiativePending } from "../domain/combat/Initiative";
+import { createCombatLogEntry, prependCombatLogEntry } from "../domain/combat/CombatLog";
 import { markQueueDirty } from "../domain/initiative/InitiativeQueue";
 import { getSheetCreationOrder } from "../domain/sheets/CombatSheet";
 import { hasUnresolvedPendingEffects } from "../domain/damage/sheetEffects";
+import { tickSpeedware } from "../domain/status/speedware";
 import { CombatEvent } from "../events/EventTypes";
 import type { EventDispatcher } from "../events/EventDispatcher";
 import type { IEncounterRepository } from "../infrastructure/repository/IEncounterRepository";
@@ -20,9 +22,12 @@ export interface IInitiativeService {
   previousTurn(): void;
   rebuildQueueIfDirty(): void;
   getOrderedIds(): string[];
+  takeSpeedwareExpiryNotices(): string[];
 }
 
 export class InitiativeService implements IInitiativeService {
+  private speedwareExpiryNotices: string[] = [];
+
   constructor(
     private readonly repository: IEncounterRepository,
     private readonly validationService: IValidationService,
@@ -41,11 +46,27 @@ export class InitiativeService implements IInitiativeService {
       return false;
     }
 
+    const previousPending = sheet.initiative.pending;
     sheet.initiative = markInitiativePending(sheet.initiative, pending);
     encounter.initiativeQueue = markQueueDirty(encounter.initiativeQueue);
 
+    if (pending !== previousPending) {
+      prependCombatLogEntry(
+        encounter,
+        createCombatLogEntry({
+          kind: "initiative",
+          text: `Initiative ${previousPending} → ${pending} (applies next round)`,
+          combatantId,
+          combatantName: sheet.name,
+        }),
+      );
+    }
+
     void this.repository.replace({ ...encounter });
     this.dispatcher.publish(CombatEvent.InitiativeUpdated, { combatantId, pending });
+    if (pending !== previousPending) {
+      this.dispatcher.publish(CombatEvent.CombatLogUpdated, {});
+    }
     return true;
   }
 
@@ -72,6 +93,7 @@ export class InitiativeService implements IInitiativeService {
   }
 
   nextTurn(): boolean {
+    this.speedwareExpiryNotices = [];
     const encounter = this.requireEncounter();
     const queue = encounter.initiativeQueue;
     const ids = queue.orderedIds;
@@ -91,10 +113,14 @@ export class InitiativeService implements IInitiativeService {
     }
 
     const currentIndex = currentId ? ids.indexOf(currentId) : -1;
+    const wrappingFromLast = currentIndex >= 0 && currentIndex === ids.length - 1;
     const isWrappingToNewRound =
-      currentId === null || (currentIndex >= 0 && currentIndex === ids.length - 1);
+      currentId === null || wrappingFromLast;
 
     if (isWrappingToNewRound && queue.dirty) {
+      if (wrappingFromLast) {
+        this.beginNewRound(encounter);
+      }
       this.commitPendingInitiatives(encounter);
       this.sortQueue(encounter);
       encounter.initiativeQueue.dirty = false;
@@ -104,12 +130,22 @@ export class InitiativeService implements IInitiativeService {
       void this.repository.replace({ ...encounter });
       this.dispatcher.publish(CombatEvent.QueueRebuilt, {});
       this.dispatcher.publish(CombatEvent.InitiativeCommitted, {});
+      if (wrappingFromLast) {
+        this.dispatcher.publish(CombatEvent.CombatLogUpdated, {});
+      }
       if (encounter.activeCombatantId) {
         this.dispatcher.publish(CombatEvent.TurnAdvanced, {
           combatantId: encounter.activeCombatantId,
         });
       }
       return true;
+    }
+
+    if (wrappingFromLast) {
+      this.beginNewRound(encounter);
+      if (!queue.dirty) {
+        this.sortQueue(encounter);
+      }
     }
 
     if (!currentId) {
@@ -121,6 +157,9 @@ export class InitiativeService implements IInitiativeService {
 
     this.incrementActivation(encounter);
     void this.repository.replace({ ...encounter });
+    if (wrappingFromLast) {
+      this.dispatcher.publish(CombatEvent.CombatLogUpdated, {});
+    }
     if (encounter.activeCombatantId) {
       this.dispatcher.publish(CombatEvent.TurnAdvanced, {
         combatantId: encounter.activeCombatantId,
@@ -169,6 +208,38 @@ export class InitiativeService implements IInitiativeService {
 
   getOrderedIds(): string[] {
     return this.repository.get()?.initiativeQueue.orderedIds ?? [];
+  }
+
+  takeSpeedwareExpiryNotices(): string[] {
+    const notices = this.speedwareExpiryNotices;
+    this.speedwareExpiryNotices = [];
+    return notices;
+  }
+
+  private beginNewRound(encounter: CombatEncounter): void {
+    encounter.roundNumber += 1;
+    prependCombatLogEntry(
+      encounter,
+      createCombatLogEntry({
+        kind: "round",
+        text: `Round ${encounter.roundNumber} begins`,
+      }),
+    );
+    for (const sheet of encounter.participants) {
+      const expired = tickSpeedware(sheet);
+      for (const expiry of expired) {
+        prependCombatLogEntry(
+          encounter,
+          createCombatLogEntry({
+            kind: "result",
+            text: expiry.text,
+            combatantId: expiry.combatantId,
+            combatantName: expiry.combatantName,
+          }),
+        );
+        this.speedwareExpiryNotices.push(`${expiry.combatantName}: ${expiry.text}`);
+      }
+    }
   }
 
   private incrementActivation(encounter: CombatEncounter): void {

@@ -53,5 +53,7 @@ describe("migrateEncounter", () => {
     expect(npc.body[0]?.isHardSp).toBe(false);
     expect(npc.runtimeMetadata.activationSequence).toBe(0);
     expect(npc.runtimeMetadata.taserHitActivations).toEqual([]);
+    expect(migrated!.combatLog).toEqual([]);
+    expect(migrated!.roundNumber).toBe(1);
   });
 });

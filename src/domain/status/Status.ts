@@ -24,6 +24,10 @@ export function hasStatus(collection: StatusCollectionData, type: StatusType): b
   return collection.some((entry) => entry.type === type && entry.status.active);
 }
 
+export function getStatus(collection: StatusCollectionData, type: StatusType): Status | undefined {
+  return collection.find((entry) => entry.type === type)?.status;
+}
+
 export function setStatus(
   collection: StatusCollectionData,
   type: StatusType,
@@ -36,6 +40,14 @@ export function setStatus(
     );
   }
   return [...collection, { type, status: createStatus(type, active) }];
+}
+
+export function upsertStatus(collection: StatusCollectionData, status: Status): StatusCollectionData {
+  const existing = collection.find((entry) => entry.type === status.type);
+  if (existing) {
+    return collection.map((entry) => (entry.type === status.type ? { type: status.type, status } : entry));
+  }
+  return [...collection, { type: status.type, status }];
 }
 
 export function createEmptyStatusCollection(): StatusCollectionData {

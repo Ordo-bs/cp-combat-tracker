@@ -25,6 +25,8 @@ export const STATUS_LABELS: Record<StatusType, string> = {
   [StatusType.MARKED]: "Marked",
   [StatusType.DEAD]: "Dead",
   [StatusType.DESTROYED]: "Destroyed",
+  [StatusType.SANDEVISTAN]: "Sandy",
+  [StatusType.ADRENAL_BOOSTER]: "Boost",
 };
 
 export function statusesForSheetType(type: CombatSheetType): StatusType[] {

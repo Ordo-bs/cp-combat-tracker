@@ -585,6 +585,35 @@ describe("ongoing effects", () => {
     expect(applied.success).toBe(true);
     expect(hasUnresolvedPendingEffects(applied.nextSheet!)).toBe(false);
   });
+
+  it("summarizes Kendachi Dragon fire with the roll, locations, and SP outcome", () => {
+    const { engine: damage } = engine([5, 4]);
+    const sheet = npc((s) => {
+      s.trackers.hasPainEditor = true;
+      const torso = s.body.find((part) => part.location === BodyLocation.TORSO)!;
+      const arm = s.body.find((part) => part.location === BodyLocation.LEFT_ARM)!;
+      torso.sp = 8;
+      arm.sp = 16;
+      arm.isHardSp = true;
+    });
+    const created = damage.resolveHit(sheet, {
+      targetId: sheet.id,
+      damageType: "fire",
+      fireSource: "kendachiDragon",
+      fireLocations: [BodyLocation.TORSO, BodyLocation.LEFT_ARM],
+    });
+    const next = created.nextSheet;
+    if (!next || !isNpcSheet(next)) {
+      throw new Error("expected npc");
+    }
+    next.runtimeMetadata.activationSequence += 1;
+    const applied = damage.resolvePendingEffects(next);
+    expect(applied.summary).toContain("Fire — Kendachi Dragon");
+    expect(applied.summary).toContain("2d6 = 9 on Torso and Left Arm");
+    expect(applied.summary).toContain("Torso: 9 vs SP 8 ignored (soft < 15) → 7 after BTM.");
+    expect(applied.summary).toContain("Left Arm: 9 absorbed by SP 16.");
+    expect(applied.summary).not.toMatch(/Kendachi Dragon applied/);
+  });
 });
 
 describe("hit field metadata", () => {

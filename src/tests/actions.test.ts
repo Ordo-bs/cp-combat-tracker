@@ -68,6 +68,7 @@ describe("CombatActionExecutor", () => {
       factory,
       dispatcher,
       damageEngine,
+      diceService,
     );
 
     executor = new CombatActionExecutor({

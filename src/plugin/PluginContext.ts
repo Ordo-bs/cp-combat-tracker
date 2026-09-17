@@ -9,6 +9,7 @@ import { CombatService } from "../services/CombatService";
 import { CombatSheetFactory } from "../services/CombatSheetFactory";
 import { DamageThresholdService } from "../services/DamageThresholdService";
 import { DiceService } from "../services/DiceService";
+import { CombatLogService } from "../services/CombatLogService";
 import { EncounterService } from "../services/EncounterService";
 import { InitiativeService } from "../services/InitiativeService";
 import { TemplateService } from "../services/TemplateService";
@@ -30,6 +31,7 @@ export class PluginContext {
   readonly damageThresholdService: DamageThresholdService;
   readonly factory: CombatSheetFactory;
   readonly encounterService: EncounterService;
+  readonly combatLogService: CombatLogService;
   readonly initiativeService: InitiativeService;
   readonly combatService: CombatService;
   readonly templateService: TemplateService;
@@ -48,6 +50,7 @@ export class PluginContext {
     this.damageThresholdService = new DamageThresholdService();
     this.factory = new CombatSheetFactory(this.diceService);
     this.encounterService = new EncounterService(this.repository, this.dispatcher);
+    this.combatLogService = new CombatLogService(this.repository, this.dispatcher);
     this.initiativeService = new InitiativeService(
       this.repository,
       this.validationService,
@@ -68,6 +71,7 @@ export class PluginContext {
       this.factory,
       this.dispatcher,
       this.damageEngine,
+      this.diceService,
     );
     this.templateService = new TemplateService(this.factory);
     this.stunResolver = new SaveResolver();

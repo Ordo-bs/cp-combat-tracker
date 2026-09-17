@@ -13,6 +13,7 @@ export enum CombatEvent {
   CombatSheetUpdated = "CombatSheetUpdated",
   EncounterChanged = "EncounterChanged",
   CombatActionExecuted = "CombatActionExecuted",
+  CombatLogUpdated = "CombatLogUpdated",
   CombatantDamaged = "CombatantDamaged",
   BodyPartDamaged = "BodyPartDamaged",
   BodyPartDisabled = "BodyPartDisabled",
