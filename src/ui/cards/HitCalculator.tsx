@@ -9,6 +9,7 @@ import { BodyLocation } from "../../domain/sheets/components";
 import { isNpcSheet, isVehicleSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
 import { getVisibleHitFields } from "../../services/damage/hitFields";
 import { usePluginContext } from "../context/EncounterContext";
+import { toastCombatResult } from "../toastCombatResult";
 import type { UiElement } from "../types";
 
 interface HitCalculatorProps {
@@ -17,7 +18,7 @@ interface HitCalculatorProps {
 }
 
 export function HitCalculator({ sheet, onApplied }: HitCalculatorProps): UiElement | null {
-  const { actionExecutor, damageTypeRegistry } = usePluginContext();
+  const { actionExecutor, combatLogService, damageTypeRegistry } = usePluginContext();
   const isVehicle = isVehicleSheet(sheet);
   const [damageType, setDamageType] = useState<DamageType>("regular");
   const [rawDamage, setRawDamage] = useState("");
@@ -63,9 +64,7 @@ export function HitCalculator({ sheet, onApplied }: HitCalculatorProps): UiEleme
     }
     const data = result.data as ResolutionResult;
     const message = [data.summary, ...data.reminders].filter(Boolean).join("\n");
-    if (message) {
-      new Notice(message);
-    }
+    toastCombatResult(combatLogService, sheet.id, message);
     onApplied?.();
   };
 

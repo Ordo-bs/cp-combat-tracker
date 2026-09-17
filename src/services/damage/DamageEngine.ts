@@ -807,19 +807,30 @@ export class DamageEngine {
     const count = fireLocationCount(effect.source);
 
     if (effect.source === "kendachiDragon" && effect.locations && effect.locations.length === 2) {
+      const hitLocations: BodyLocation[] = [];
+      const locationLines: string[] = [];
+      let roll: DiceRollResult;
       if (index === 0) {
-        const roll = rollFireDamage(effect.source, 0, this.dice);
+        roll = rollFireDamage(effect.source, 0, this.dice);
         result.diceRolls.push(roll);
         for (const location of effect.locations) {
-          this.applySpecificFire(sheet, effect.source, location, roll.total, result);
+          hitLocations.push(location);
+          locationLines.push(this.applySpecificFire(sheet, effect.source, location, roll.total, result));
         }
       } else {
         const pick = this.dice.coin() ? effect.locations[0]! : effect.locations[1]!;
-        const roll = rollFireDamage(effect.source, 1, this.dice);
+        roll = rollFireDamage(effect.source, 1, this.dice);
         result.diceRolls.push(roll);
-        this.applySpecificFire(sheet, effect.source, pick, roll.total, result);
+        hitLocations.push(pick);
+        locationLines.push(this.applySpecificFire(sheet, effect.source, pick, roll.total, result));
       }
-      result.summary = `Fire — Kendachi Dragon applied.`;
+      const names = hitLocations.map((location) => this.partName(location)).join(" and ");
+      result.summary = [
+        "Fire — Kendachi Dragon",
+        `${roll.notation} = ${roll.total} on ${names}`,
+        ...locationLines.filter((line) => line.length > 0),
+        ...this.resolutionSaveLines(result),
+      ].join("\n");
       result.nextSheet = sheet;
       return result;
     }
@@ -921,20 +932,25 @@ export class DamageEngine {
     location: BodyLocation,
     damage: number,
     result: ResolutionResult,
-  ): void {
+  ): string {
     if (!isNpcSheet(sheet)) {
-      return;
+      return "";
     }
     const part = requireBodyPart(sheet, location);
-    let effectiveSp = part.sp;
+    const wornSp = part.sp;
+    const ignoredSoft =
+      fireRequiresSoftSpThreshold(source) && !part.isHardSp && wornSp < 15;
+    let effectiveSp = wornSp;
     if (fireBypassesArmour(source)) {
       effectiveSp = 0;
-    } else if (fireRequiresSoftSpThreshold(source) && !part.isHardSp && part.sp < 15) {
+    } else if (ignoredSoft) {
       effectiveSp = 0;
     }
+    const spPhrase =
+      ignoredSoft && wornSp > 0 ? `SP ${wornSp} ignored (soft < 15)` : `SP ${effectiveSp}`;
     const penetrated = damage > effectiveSp;
     if (!penetrated) {
-      return;
+      return `${this.partName(location)}: ${damage} absorbed by ${spPhrase}.`;
     }
     const through = damage - effectiveSp;
     const cybernetic = part.cybernetic && Boolean(part.cyberneticProperties);
@@ -953,6 +969,8 @@ export class DamageEngine {
         cybernetic: false,
       });
     }
+    const applied = cybernetic ? `${finalDamage} SDP` : `${finalDamage} after BTM`;
+    return `${this.partName(location)}: ${damage} vs ${spPhrase} → ${applied}.`;
   }
 
   private addFireEffect(
@@ -1011,6 +1029,29 @@ export class DamageEngine {
 
   private event(type: CombatEvent, payload: Record<string, unknown>): ResolutionEvent {
     return { type, payload };
+  }
+
+  private resolutionSaveLines(result: ResolutionResult): string[] {
+    const lines: string[] = [];
+    if (result.stun) {
+      lines.push(
+        `Stun Save: ${result.stun.roll} vs ${result.stun.threshold} — ${result.stun.succeeded ? "succeeded" : "failed"}.${result.stun.stunned ? " Target is Stunned." : ""}`,
+      );
+    }
+    for (const location of result.disabledBodyParts) {
+      lines.push(`${this.partName(location)} cybernetic is DISABLED.`);
+    }
+    for (const location of result.destroyedBodyParts) {
+      lines.push(`${this.partName(location)} cybernetic is DESTROYED.`);
+    }
+    if (result.massiveDamage?.instantDeath || result.death?.dead) {
+      lines.push("Target is DEAD.");
+    } else if (result.death) {
+      lines.push(
+        `Death Save: ${result.death.roll} vs ${result.death.threshold} — ${result.death.succeeded ? "succeeded" : "failed"}.`,
+      );
+    }
+    return lines;
   }
 
   private partName(location: BodyLocation): string {

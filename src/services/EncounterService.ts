@@ -1,10 +1,12 @@
 import type { CombatEncounter } from "../domain/combat/CombatEncounter";
+import { emptyCombatLog } from "../domain/combat/CombatLog";
 import { CombatSheetType } from "../domain/combat/CombatSheetType";
 import { createInitiative } from "../domain/combat/Initiative";
 import { CombatEvent } from "../events/EventTypes";
 import type { EventDispatcher } from "../events/EventDispatcher";
 import type { IEncounterRepository } from "../infrastructure/repository/IEncounterRepository";
 import { generateId } from "../util/uuid";
+import { clearSpeedwareStatuses } from "../domain/status/speedware";
 import { createEmptyEncounter } from "./InitiativeService";
 
 export interface IEncounterService {
@@ -40,6 +42,7 @@ export class EncounterService implements IEncounterService {
 
     for (const sheet of remainingParticipants) {
       sheet.initiative = createInitiative(0);
+      clearSpeedwareStatuses(sheet);
     }
 
     encounter.participants = remainingParticipants;
@@ -48,6 +51,8 @@ export class EncounterService implements IEncounterService {
       dirty: false,
     };
     encounter.activeCombatantId = encounter.initiativeQueue.orderedIds[0] ?? null;
+    encounter.combatLog = emptyCombatLog();
+    encounter.roundNumber = 1;
 
     void this.repository.replace({ ...encounter });
     this.dispatcher.publish(CombatEvent.EncounterCleared, {});

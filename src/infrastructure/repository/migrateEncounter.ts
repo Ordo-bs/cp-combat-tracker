@@ -1,4 +1,10 @@
 import type { CombatEncounter } from "../../domain/combat/CombatEncounter";
+import {
+  COMBAT_LOG_KINDS,
+  emptyCombatLog,
+  type CombatLogEntry,
+  type CombatLogKind,
+} from "../../domain/combat/CombatLog";
 import { createRuntimeMetadataDefaults } from "../../domain/combat/RuntimeMetadata";
 import { CombatSheetType } from "../../domain/combat/CombatSheetType";
 import { WoundState } from "../../domain/rules/WoundState";
@@ -145,6 +151,37 @@ function migrateSheet(raw: unknown): CombatSheet | null {
   return null;
 }
 
+function isCombatLogKind(value: unknown): value is CombatLogKind {
+  return typeof value === "string" && (COMBAT_LOG_KINDS as readonly string[]).includes(value);
+}
+
+function migrateCombatLog(raw: unknown): CombatLogEntry[] {
+  if (!Array.isArray(raw)) {
+    return emptyCombatLog();
+  }
+  const entries: CombatLogEntry[] = [];
+  for (const item of raw) {
+    const record = asRecord(item);
+    if (!record || typeof record.id !== "string" || typeof record.text !== "string" || !isCombatLogKind(record.kind)) {
+      continue;
+    }
+    const entry: CombatLogEntry = {
+      id: record.id,
+      kind: record.kind,
+      text: record.text,
+      createdAt: asNumber(record.createdAt, 0),
+    };
+    if (typeof record.combatantId === "string") {
+      entry.combatantId = record.combatantId;
+    }
+    if (typeof record.combatantName === "string") {
+      entry.combatantName = record.combatantName;
+    }
+    entries.push(entry);
+  }
+  return entries;
+}
+
 /** Upgrades persisted encounter payloads to the current CombatSheet shape. */
 export function migrateEncounter(raw: unknown): CombatEncounter | null {
   const record = asRecord(raw);
@@ -169,5 +206,7 @@ export function migrateEncounter(raw: unknown): CombatEncounter | null {
         ? (encounterRaw.activeCombatantId as string | null)
         : null,
     createdAt: asNumber(encounterRaw.createdAt, Date.now()),
+    roundNumber: Math.max(1, Math.floor(asNumber(encounterRaw.roundNumber, 1))),
+    combatLog: migrateCombatLog(encounterRaw.combatLog),
   };
 }

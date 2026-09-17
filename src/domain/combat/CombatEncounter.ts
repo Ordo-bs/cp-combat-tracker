@@ -1,5 +1,6 @@
 import type { CombatSheet } from "../sheets/CombatSheet";
 import type { InitiativeQueue } from "../initiative/InitiativeQueue";
+import { emptyCombatLog, type CombatLogEntry } from "./CombatLog";
 
 export interface CombatEncounter {
   id: string;
@@ -7,6 +8,8 @@ export interface CombatEncounter {
   initiativeQueue: InitiativeQueue;
   activeCombatantId: string | null;
   createdAt: number;
+  roundNumber: number;
+  combatLog: CombatLogEntry[];
 }
 
 export function createCombatEncounter(id: string): CombatEncounter {
@@ -16,6 +19,8 @@ export function createCombatEncounter(id: string): CombatEncounter {
     initiativeQueue: { orderedIds: [], dirty: false },
     activeCombatantId: null,
     createdAt: Date.now(),
+    roundNumber: 1,
+    combatLog: emptyCombatLog(),
   };
 }
 

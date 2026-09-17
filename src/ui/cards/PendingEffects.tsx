@@ -3,6 +3,7 @@ import { ActionType, createAction } from "../../actions/ActionRegistry";
 import { pendingEffectsForActivation } from "../../domain/damage/sheetEffects";
 import type { CombatSheet } from "../../domain/sheets/CombatSheet";
 import { usePluginContext } from "../context/EncounterContext";
+import { toastCombatResult } from "../toastCombatResult";
 import type { UiElement } from "../types";
 
 interface PendingEffectsProps {
@@ -11,7 +12,7 @@ interface PendingEffectsProps {
 }
 
 export function PendingEffects({ sheet, isActive }: PendingEffectsProps): UiElement | null {
-  const { actionExecutor } = usePluginContext();
+  const { actionExecutor, combatLogService } = usePluginContext();
   if (!isActive) {
     return null;
   }
@@ -31,9 +32,7 @@ export function PendingEffects({ sheet, isActive }: PendingEffectsProps): UiElem
       return;
     }
     const data = result.data as { summary?: string };
-    if (data?.summary) {
-      new Notice(data.summary);
-    }
+    toastCombatResult(combatLogService, sheet.id, data?.summary);
   };
 
   return (

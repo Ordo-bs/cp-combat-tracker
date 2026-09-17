@@ -34,6 +34,7 @@ const REFRESH_EVENTS: CombatEvent[] = [
   CombatEvent.CombatSheetUpdated,
   CombatEvent.StatusChanged,
   CombatEvent.CombatActionExecuted,
+  CombatEvent.CombatLogUpdated,
 ];
 
 export function EncounterProvider({ children }: { children: ReactNode }): UiElement {

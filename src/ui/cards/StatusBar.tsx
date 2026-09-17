@@ -12,6 +12,8 @@ const STATUS_ICONS: Partial<Record<StatusType, string>> = {
   [StatusType.MARKED]: "Marked",
   [StatusType.DEAD]: "Dead",
   [StatusType.DESTROYED]: "Destroyed",
+  [StatusType.SANDEVISTAN]: "Sandy",
+  [StatusType.ADRENAL_BOOSTER]: "Boost",
 };
 
 const WOUND_TOOLTIPS: Record<WoundState, string> = {

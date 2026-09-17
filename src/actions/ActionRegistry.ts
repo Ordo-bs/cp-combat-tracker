@@ -6,6 +6,8 @@ import { PerformStunSaveAction } from "./actions/PerformStunSaveAction";
 import { ReloadWeaponAction } from "./actions/ReloadWeaponAction";
 import { ResolveHitAction } from "./actions/ResolveHitAction";
 import { ApplyOngoingEffectsAction } from "./actions/ApplyOngoingEffectsAction";
+import { ActivateSandevistanAction } from "./actions/ActivateSandevistanAction";
+import { ActivateAdrenalBoosterAction } from "./actions/ActivateAdrenalBoosterAction";
 import type { DamageRequest } from "../domain/damage/DamageRequest";
 
 export { ActionType };
@@ -17,7 +19,9 @@ export type ActionRequest =
   | { type: typeof ActionType.PerformDeathSave; combatantId: string; useBaseSave?: boolean }
   | { type: typeof ActionType.OpenHitCalculator; combatantId: string }
   | { type: typeof ActionType.ResolveHit; request: DamageRequest }
-  | { type: typeof ActionType.ApplyOngoingEffects; combatantId: string };
+  | { type: typeof ActionType.ApplyOngoingEffects; combatantId: string }
+  | { type: typeof ActionType.ActivateSandevistan; combatantId: string }
+  | { type: typeof ActionType.ActivateAdrenalBooster; combatantId: string; rounds?: number };
 
 export function createAction(request: ActionRequest): CombatAction<unknown> {
   switch (request.type) {
@@ -35,5 +39,9 @@ export function createAction(request: ActionRequest): CombatAction<unknown> {
       return new ResolveHitAction(request.request);
     case ActionType.ApplyOngoingEffects:
       return new ApplyOngoingEffectsAction(request.combatantId);
+    case ActionType.ActivateSandevistan:
+      return new ActivateSandevistanAction(request.combatantId);
+    case ActionType.ActivateAdrenalBooster:
+      return new ActivateAdrenalBoosterAction(request.combatantId, request.rounds);
   }
 }

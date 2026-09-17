@@ -44,6 +44,10 @@ export function SidebarToolbar(): UiElement {
     const advanced = initiativeService.nextTurn();
     if (!advanced) {
       new Notice("Resolve pending effects before advancing.");
+      return;
+    }
+    for (const message of initiativeService.takeSpeedwareExpiryNotices()) {
+      new Notice(message);
     }
   };
 

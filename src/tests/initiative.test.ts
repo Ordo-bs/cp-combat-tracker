@@ -117,6 +117,62 @@ describe("InitiativeService", () => {
     expect(after?.activeCombatantId).toBe(bravo.id);
     expect(after?.participants.find((sheet) => sheet.id === bravo.id)?.runtimeMetadata.activationSequence).toBe(1);
   });
+
+  it("logs a numbered new round when Next wraps from last to first", async () => {
+    const encounter = createCombatEncounter("enc-1");
+    const alpha = factory.createDraft(CombatSheetType.NPC, "Alpha", 22);
+    const bravo = factory.createDraft(CombatSheetType.NPC, "Bravo", 18);
+    encounter.participants.push(alpha, bravo);
+    encounter.initiativeQueue.orderedIds = [alpha.id, bravo.id];
+    encounter.activeCombatantId = alpha.id;
+    await repository.replace(encounter);
+
+    initiativeService.nextTurn();
+    expect(repository.get()?.roundNumber).toBe(1);
+    expect(repository.get()?.combatLog).toEqual([]);
+
+    initiativeService.nextTurn();
+    const wrapped = repository.get();
+    expect(wrapped?.roundNumber).toBe(2);
+    expect(wrapped?.activeCombatantId).toBe(alpha.id);
+    expect(wrapped?.combatLog[0]).toMatchObject({ kind: "round", text: "Round 2 begins" });
+  });
+
+  it("does not log or decrement the round when Previous wraps backward", async () => {
+    const encounter = createCombatEncounter("enc-1");
+    const alpha = factory.createDraft(CombatSheetType.NPC, "Alpha", 22);
+    const bravo = factory.createDraft(CombatSheetType.NPC, "Bravo", 18);
+    encounter.participants.push(alpha, bravo);
+    encounter.initiativeQueue.orderedIds = [alpha.id, bravo.id];
+    encounter.activeCombatantId = alpha.id;
+    encounter.roundNumber = 2;
+    await repository.replace(encounter);
+
+    initiativeService.previousTurn();
+    const after = repository.get();
+    expect(after?.roundNumber).toBe(2);
+    expect(after?.combatLog).toEqual([]);
+    expect(after?.activeCombatantId).toBe(bravo.id);
+  });
+
+  it("logs initiative edits immediately and skips unchanged values", async () => {
+    const encounter = createCombatEncounter("enc-1");
+    const alpha = factory.createDraft(CombatSheetType.NPC, "Alpha", 22);
+    encounter.participants.push(alpha);
+    encounter.initiativeQueue.orderedIds = [alpha.id];
+    encounter.activeCombatantId = alpha.id;
+    await repository.replace(encounter);
+
+    expect(initiativeService.updatePending(alpha.id, 14)).toBe(true);
+    expect(repository.get()?.combatLog[0]).toMatchObject({
+      kind: "initiative",
+      combatantName: "Alpha",
+      text: "Initiative 22 → 14 (applies next round)",
+    });
+
+    expect(initiativeService.updatePending(alpha.id, 14)).toBe(true);
+    expect(repository.get()?.combatLog).toHaveLength(1);
+  });
 });
 
 describe("RuleTables", () => {

@@ -1,7 +1,16 @@
 import { findCombatSheet, uniqueCombatantName, type CombatEncounter } from "../domain/combat/CombatEncounter";
-import { isNpcSheet, type CombatSheet } from "../domain/sheets/CombatSheet";
+import { isNpcSheet, isVehicleSheet, type CombatSheet } from "../domain/sheets/CombatSheet";
 import { setStatus } from "../domain/status/Status";
 import { StatusType } from "../domain/status/StatusType";
+import {
+  ADRENAL_BONUS,
+  activateSpeedware,
+  SANDEVISTAN_BONUS,
+  SANDEVISTAN_DURATION,
+  speedwareActive,
+  speedwareFlagAvailable,
+} from "../domain/status/speedware";
+import { markQueueDirty } from "../domain/initiative/InitiativeQueue";
 import { CombatEvent } from "../events/EventTypes";
 import type { EventDispatcher } from "../events/EventDispatcher";
 import type { IEncounterRepository } from "../infrastructure/repository/IEncounterRepository";
@@ -12,6 +21,7 @@ import {
 import type { EncounterService } from "./EncounterService";
 import type { InitiativeService } from "./InitiativeService";
 import type { IValidationService, ValidationResult } from "./ValidationService";
+import type { IDiceService } from "./DiceService";
 import type { DamageEngine } from "./damage/DamageEngine";
 import type { DamageRequest, DeathRequest, StunRequest } from "../domain/damage/DamageRequest";
 import type { ResolutionResult } from "../domain/damage/DamageResult";
@@ -26,6 +36,8 @@ export interface ICombatService {
   setCombatantStatus(combatantId: string, statusType: StatusType, active: boolean): ValidationResult;
   updateCombatSheet(combatantId: string, sheet: CombatSheet): ValidationResult;
   confirmDraft(sheet: CombatSheet): ValidationResult;
+  activateSandevistan(combatantId: string): ResolutionResult;
+  activateAdrenalBooster(combatantId: string, rounds?: number): ResolutionResult;
   getEncounter(): CombatEncounter;
 }
 
@@ -38,6 +50,7 @@ export class CombatService implements ICombatService {
     private readonly factory: CombatSheetFactory,
     private readonly dispatcher: EventDispatcher,
     private readonly damageEngine?: DamageEngine,
+    private readonly diceService?: IDiceService,
   ) {}
 
   addCombatant(sheet: CombatSheet): ValidationResult {
@@ -171,6 +184,44 @@ export class CombatService implements ICombatService {
     return { valid: true, errors: [], warnings: [] };
   }
 
+  activateSandevistan(combatantId: string): ResolutionResult {
+    return this.activateSpeedwareEffect(combatantId, StatusType.SANDEVISTAN, SANDEVISTAN_DURATION, SANDEVISTAN_BONUS);
+  }
+
+  activateAdrenalBooster(combatantId: string, rounds?: number): ResolutionResult {
+    const encounter = this.encounterService.getCurrent();
+    const sheet = findCombatSheet(encounter, combatantId);
+    if (!sheet) {
+      return this.speedwareFailure("Combatant not found.");
+    }
+    if (isVehicleSheet(sheet)) {
+      return this.speedwareFailure("Speedware is not available on vehicles.");
+    }
+
+    let duration = rounds;
+    let summary: string;
+    if (isNpcSheet(sheet)) {
+      if (!this.diceService) {
+        return this.speedwareFailure("Dice service is not configured.");
+      }
+      const roll = this.diceService.roll(6);
+      duration = roll.total + 2;
+      summary = `Adrenal booster: 1d6+2 = ${duration} → +${ADRENAL_BONUS} initiative for ${duration} rounds.`;
+    } else {
+      if (duration === undefined || !Number.isInteger(duration) || duration < 1) {
+        return this.speedwareFailure("Number of rounds must be at least 1.");
+      }
+      summary = `Adrenal booster: +${ADRENAL_BONUS} initiative for ${duration} rounds.`;
+    }
+    return this.activateSpeedwareEffect(
+      combatantId,
+      StatusType.ADRENAL_BOOSTER,
+      duration as number,
+      ADRENAL_BONUS,
+      summary,
+    );
+  }
+
   getEncounter(): CombatEncounter {
     return this.encounterService.getCurrent();
   }
@@ -280,5 +331,73 @@ export class CombatService implements ICombatService {
     this.dispatcher.publish(CombatEvent.CombatSheetUpdated, { combatantId: targetId });
     this.dispatcher.publish(CombatEvent.EncounterChanged, {});
     return result;
+  }
+
+  private activateSpeedwareEffect(
+    combatantId: string,
+    type: StatusType.SANDEVISTAN | StatusType.ADRENAL_BOOSTER,
+    duration: number,
+    bonus: number,
+    summary?: string,
+  ): ResolutionResult {
+    const encounter = this.encounterService.getCurrent();
+    const sheet = findCombatSheet(encounter, combatantId);
+    if (!sheet) {
+      return this.speedwareFailure("Combatant not found.");
+    }
+    if (isVehicleSheet(sheet)) {
+      return this.speedwareFailure("Speedware is not available on vehicles.");
+    }
+    if (!speedwareFlagAvailable(sheet, type)) {
+      return this.speedwareFailure(
+        type === StatusType.SANDEVISTAN ? "Sandevistan is not installed." : "Adrenal booster is not installed.",
+      );
+    }
+    if (speedwareActive(sheet, type)) {
+      return this.speedwareFailure(
+        type === StatusType.SANDEVISTAN ? "Sandevistan is already active." : "Adrenal booster is already active.",
+      );
+    }
+    if (isNpcSheet(sheet) && sheet.damage.isDead) {
+      return this.speedwareFailure("Target is dead.");
+    }
+
+    activateSpeedware(sheet, type, duration, bonus);
+    encounter.initiativeQueue = markQueueDirty(encounter.initiativeQueue);
+    void this.repository.replace({ ...encounter });
+    this.dispatcher.publish(CombatEvent.StatusChanged, { combatantId, statusType: type, active: true });
+    this.dispatcher.publish(CombatEvent.InitiativeUpdated, { combatantId, pending: sheet.initiative.pending });
+    this.dispatcher.publish(CombatEvent.CombatSheetUpdated, { combatantId });
+
+    const text =
+      summary ??
+      (type === StatusType.SANDEVISTAN
+        ? `Sandevistan: +${bonus} initiative for ${duration} rounds.`
+        : `Adrenal booster: +${bonus} initiative for ${duration} rounds.`);
+    return {
+      success: true,
+      summary: text,
+      errors: [],
+      warnings: [],
+      events: [],
+      diceRolls: [],
+      disabledBodyParts: [],
+      destroyedBodyParts: [],
+      reminders: [],
+    };
+  }
+
+  private speedwareFailure(message: string): ResolutionResult {
+    return {
+      success: false,
+      summary: message,
+      errors: [message],
+      warnings: [],
+      events: [],
+      diceRolls: [],
+      disabledBodyParts: [],
+      destroyedBodyParts: [],
+      reminders: [],
+    };
   }
 }

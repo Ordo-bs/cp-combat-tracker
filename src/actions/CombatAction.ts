@@ -14,6 +14,8 @@ export const ActionType = {
   OpenHitCalculator: "open-hit-calculator",
   ResolveHit: "resolve-hit",
   ApplyOngoingEffects: "apply-ongoing-effects",
+  ActivateSandevistan: "activate-sandevistan",
+  ActivateAdrenalBooster: "activate-adrenal-booster",
 } as const;
 
 export type ActionTypeName = (typeof ActionType)[keyof typeof ActionType];

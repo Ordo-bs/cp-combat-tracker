@@ -6,26 +6,26 @@ import { usePluginContext } from "../context/EncounterContext";
 import { toastCombatResult } from "../toastCombatResult";
 import type { UiElement } from "../types";
 
-interface StunMenuProps {
+interface AdrenalBoosterMenuProps {
   combatantId: string;
   onClose: () => void;
 }
 
-export function StunMenu({ combatantId, onClose }: StunMenuProps): UiElement {
+export function AdrenalBoosterMenu({ combatantId, onClose }: AdrenalBoosterMenuProps): UiElement {
   const { actionExecutor, combatLogService } = usePluginContext();
-  const [penalty, setPenalty] = useState("0");
+  const [rounds, setRounds] = useState("1");
 
   const apply = (): void => {
-    const parsed = Number.parseInt(penalty, 10);
+    const parsed = Number.parseInt(rounds, 10);
     const actionResult = actionExecutor.execute(
       createAction({
-        type: ActionType.PerformStunSave,
+        type: ActionType.ActivateAdrenalBooster,
         combatantId,
-        additionalPenalty: Number.isInteger(parsed) ? parsed : 0,
+        rounds: Number.isInteger(parsed) ? parsed : Number.NaN,
       }),
     );
     if (!actionResult.success) {
-      new Notice(actionResult.errors[0] ?? "Stun save failed.");
+      new Notice(actionResult.errors[0] ?? "Adrenal booster failed.");
       return;
     }
     const data = actionResult.data as ResolutionResult;
@@ -36,12 +36,12 @@ export function StunMenu({ combatantId, onClose }: StunMenuProps): UiElement {
   return (
     <div className="cp-inline-menu">
       <label className="cp-hit-calculator__field">
-        <span>Additional Stun Penalty</span>
-        <input type="number" value={penalty} onChange={(event) => setPenalty(event.target.value)} />
+        <span>Number of rounds</span>
+        <input type="number" min={1} value={rounds} onChange={(event) => setRounds(event.target.value)} />
       </label>
       <div className="cp-card__button-row">
         <button type="button" className="mod-cta" onClick={apply}>
-          Roll Stun
+          Apply
         </button>
         <button type="button" onClick={onClose}>
           Close
