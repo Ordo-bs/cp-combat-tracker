@@ -40,3 +40,28 @@ export function woundStateCardLabel(
       return null;
   }
 }
+
+/** Full wound name for the expanded card. `null` means no wound line. */
+export function woundStateExpandedLabel(
+  wound: WoundState,
+  deathPenalty?: number | null,
+): string | null {
+  switch (wound) {
+    case WoundState.NONE:
+      return null;
+    case WoundState.LIGHT:
+    case WoundState.SERIOUS:
+    case WoundState.CRITICAL:
+      return WOUND_STATE_LABELS[wound];
+    case WoundState.MORTAL:
+      if (deathPenalty === null) {
+        return "Mortal +";
+      }
+      if (typeof deathPenalty === "number") {
+        return `Mortal ${-deathPenalty}`;
+      }
+      return WOUND_STATE_LABELS[WoundState.MORTAL];
+    default:
+      return null;
+  }
+}

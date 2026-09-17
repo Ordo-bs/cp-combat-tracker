@@ -14,7 +14,6 @@ export interface BodyPartTemplate {
   destroyed: boolean;
   isHardSp: boolean;
   cybernetic: boolean;
-  sdp: number;
   disabled: boolean;
   hydraulicRams: boolean;
   reinforcedJoints: boolean;

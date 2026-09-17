@@ -7,10 +7,10 @@ import {
 } from "../../domain/sheets/CombatSheet";
 import {
   BodyLocation,
-  DEFAULT_CYBERNETIC_SDP,
   type BodyPart,
 } from "../../domain/sheets/components";
 import { FENCE_NAME, BODY_YAML_KEYS } from "./templateSchema";
+import { allowsCyberneticLimbOptions } from "../../domain/damage/sheetEffects";
 
 const YAML_BODY_KEYS: Record<BodyLocation, string> = Object.fromEntries(
   Object.entries(BODY_YAML_KEYS).map(([yamlKey, location]) => [location, yamlKey]),
@@ -110,20 +110,19 @@ function appendBodyPartFields(fields: Array<[string, string | number | boolean]>
   if (!cyber) {
     return;
   }
-  if (cyber.sdp !== DEFAULT_CYBERNETIC_SDP) {
-    fields.push([`${prefix}.sdp`, cyber.sdp]);
-  }
   if (cyber.disabled) {
     fields.push([`${prefix}.disabled`, true]);
   }
-  if (cyber.hydraulicRams) {
-    fields.push([`${prefix}.hydraulicRams`, true]);
-  }
-  if (cyber.reinforcedJoints) {
-    fields.push([`${prefix}.reinforcedJoints`, true]);
-  }
-  if (cyber.thickenedMyomar) {
-    fields.push([`${prefix}.thickenedMyomar`, true]);
+  if (allowsCyberneticLimbOptions(part.location)) {
+    if (cyber.hydraulicRams) {
+      fields.push([`${prefix}.hydraulicRams`, true]);
+    }
+    if (cyber.reinforcedJoints) {
+      fields.push([`${prefix}.reinforcedJoints`, true]);
+    }
+    if (cyber.thickenedMyomar) {
+      fields.push([`${prefix}.thickenedMyomar`, true]);
+    }
   }
   if (cyber.empShielding) {
     fields.push([`${prefix}.empShielding`, true]);

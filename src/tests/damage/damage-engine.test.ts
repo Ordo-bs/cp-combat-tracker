@@ -13,7 +13,7 @@ import { DamageTypeRegistry } from "../../services/damage/DamageTypeRegistry";
 import { getVisibleHitFields } from "../../services/damage/hitFields";
 import type { DamageRequest } from "../../domain/damage/DamageRequest";
 import { lookupDamageRule } from "../../domain/rules/RuleTables";
-import { hasUnresolvedPendingEffects } from "../../domain/damage/sheetEffects";
+import { hasUnresolvedPendingEffects, remainingCyberneticSdp, cyberneticMaxSdp } from "../../domain/damage/sheetEffects";
 
 function engine(rolls: number[] = []) {
   const dice = new ScriptedDiceService(rolls);
@@ -364,15 +364,7 @@ describe("cybernetics and vehicles", () => {
       const arm = s.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
       arm.sp = 10;
       arm.cybernetic = true;
-      arm.cyberneticProperties = {
-        sdp: 25,
-        sdpDamageTaken: 0,
-        disabled: false,
-        hydraulicRams: false,
-        reinforcedJoints: false,
-        thickenedMyomar: false,
-        empShielding: false,
-      };
+      arm.cyberneticProperties = createCyberneticProperties();
       s.damage.btm = -3;
     });
     const result = damage.resolveHit(
@@ -384,7 +376,8 @@ describe("cybernetics and vehicles", () => {
       throw new Error("expected npc");
     }
     const arm = next.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
-    expect(arm.cyberneticProperties?.sdp).toBe(15);
+    expect(arm.cyberneticProperties?.sdpDamageTaken).toBe(10);
+    expect(remainingCyberneticSdp(BodyLocation.RIGHT_ARM, arm.cyberneticProperties!)).toBe(20);
     expect(next.damage.totalDamage).toBe(0);
     expect(result.stun).toBeUndefined();
   });
@@ -409,7 +402,7 @@ describe("cybernetics and vehicles", () => {
     }
     const disabledArm = disabledSheet.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
     expect(disabledArm.cyberneticProperties?.sdpDamageTaken).toBe(20);
-    expect(disabledArm.cyberneticProperties?.sdp).toBe(10);
+    expect(remainingCyberneticSdp(BodyLocation.RIGHT_ARM, disabledArm.cyberneticProperties!)).toBe(10);
     expect(disabledArm.cyberneticProperties?.disabled).toBe(true);
     expect(disabledArm.destroyed).toBe(false);
 
@@ -423,8 +416,109 @@ describe("cybernetics and vehicles", () => {
     }
     const destroyedArm = destroyedSheet.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
     expect(destroyedArm.cyberneticProperties?.sdpDamageTaken).toBe(30);
-    expect(destroyedArm.cyberneticProperties?.sdp).toBe(0);
+    expect(remainingCyberneticSdp(BodyLocation.RIGHT_ARM, destroyedArm.cyberneticProperties!)).toBe(0);
     expect(destroyedArm.destroyed).toBe(true);
+  });
+
+  it("adds thickened myomar to SDP max and disable/destroy thresholds, and clamps overflow", () => {
+    const { engine: damage } = engine();
+    const sheet = npc((s) => {
+      const arm = s.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
+      arm.sp = 0;
+      arm.cybernetic = true;
+      arm.cyberneticProperties = { ...createCyberneticProperties(), thickenedMyomar: true };
+      s.damage.btm = 0;
+    });
+
+    const overflow = damage.resolveHit(
+      sheet,
+      hit({ targetId: sheet.id, rawDamage: 40, hitLocation: BodyLocation.RIGHT_ARM }),
+    );
+    const next = overflow.nextSheet;
+    if (!next || !isNpcSheet(next)) {
+      throw new Error("expected npc");
+    }
+    const arm = next.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
+    expect(arm.cyberneticProperties?.sdpDamageTaken).toBe(35);
+    expect(remainingCyberneticSdp(BodyLocation.RIGHT_ARM, arm.cyberneticProperties!)).toBe(0);
+    expect(arm.cyberneticProperties?.disabled).toBe(true);
+    expect(arm.destroyed).toBe(true);
+    expect(next.damage.totalDamage).toBe(0);
+  });
+
+  it("disables thickened myomar at 25 SDP damage without destroying it", () => {
+    const { engine: damage } = engine();
+    const sheet = npc((s) => {
+      const arm = s.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
+      arm.sp = 0;
+      arm.cybernetic = true;
+      arm.cyberneticProperties = { ...createCyberneticProperties(), thickenedMyomar: true };
+      s.damage.btm = 0;
+    });
+
+    const result = damage.resolveHit(
+      sheet,
+      hit({ targetId: sheet.id, rawDamage: 25, hitLocation: BodyLocation.RIGHT_ARM }),
+    );
+    const next = result.nextSheet;
+    if (!next || !isNpcSheet(next)) {
+      throw new Error("expected npc");
+    }
+    const arm = next.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
+    expect(arm.cyberneticProperties?.sdpDamageTaken).toBe(25);
+    expect(remainingCyberneticSdp(BodyLocation.RIGHT_ARM, arm.cyberneticProperties!)).toBe(10);
+    expect(arm.cyberneticProperties?.disabled).toBe(true);
+    expect(arm.destroyed).toBe(false);
+  });
+
+  it("adds hydraulic rams to SDP max and clamps overflow to 40", () => {
+    const { engine: damage } = engine();
+    const sheet = npc((s) => {
+      const arm = s.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
+      arm.sp = 0;
+      arm.cybernetic = true;
+      arm.cyberneticProperties = { ...createCyberneticProperties(), hydraulicRams: true };
+      s.damage.btm = 0;
+    });
+
+    const overflow = damage.resolveHit(
+      sheet,
+      hit({ targetId: sheet.id, rawDamage: 50, hitLocation: BodyLocation.RIGHT_ARM }),
+    );
+    const next = overflow.nextSheet;
+    if (!next || !isNpcSheet(next)) {
+      throw new Error("expected npc");
+    }
+    const arm = next.body.find((part) => part.location === BodyLocation.RIGHT_ARM)!;
+    expect(arm.cyberneticProperties?.sdpDamageTaken).toBe(40);
+    expect(remainingCyberneticSdp(BodyLocation.RIGHT_ARM, arm.cyberneticProperties!)).toBe(0);
+    expect(arm.destroyed).toBe(true);
+    expect(next.damage.totalDamage).toBe(0);
+  });
+
+  it("does not apply limb option bonuses on a cybernetic head", () => {
+    const { engine: damage } = engine();
+    const sheet = npc((s) => {
+      const head = s.body.find((part) => part.location === BodyLocation.HEAD)!;
+      head.sp = 0;
+      head.cybernetic = true;
+      head.cyberneticProperties = { ...createCyberneticProperties(), hydraulicRams: true };
+      s.damage.btm = 0;
+    });
+    expect(cyberneticMaxSdp(BodyLocation.HEAD, sheet.body.find((part) => part.location === BodyLocation.HEAD)!.cyberneticProperties!)).toBe(30);
+
+    const overflow = damage.resolveHit(
+      sheet,
+      hit({ targetId: sheet.id, rawDamage: 40, hitLocation: BodyLocation.HEAD }),
+    );
+    const next = overflow.nextSheet;
+    if (!next || !isNpcSheet(next)) {
+      throw new Error("expected npc");
+    }
+    const head = next.body.find((part) => part.location === BodyLocation.HEAD)!;
+    expect(head.cyberneticProperties?.sdpDamageTaken).toBe(30);
+    expect(remainingCyberneticSdp(BodyLocation.HEAD, head.cyberneticProperties!)).toBe(0);
+    expect(head.destroyed).toBe(true);
   });
 
   it("does not double cybernetic head damage", () => {
@@ -433,15 +527,7 @@ describe("cybernetics and vehicles", () => {
       const head = s.body.find((part) => part.location === BodyLocation.HEAD)!;
       head.sp = 0;
       head.cybernetic = true;
-      head.cyberneticProperties = {
-        sdp: 30,
-        sdpDamageTaken: 0,
-        disabled: false,
-        hydraulicRams: false,
-        reinforcedJoints: false,
-        thickenedMyomar: false,
-        empShielding: false,
-      };
+      head.cyberneticProperties = createCyberneticProperties();
       s.damage.btm = 0;
     });
     const result = damage.resolveHit(

@@ -16,6 +16,7 @@ import {
   createDamageComponent,
   type BodyPart,
 } from "../../domain/sheets/components";
+import { clampCyberneticSdpDamage, clearInvalidCyberneticLimbOptions } from "../../domain/damage/sheetEffects";
 import type { OngoingEffect } from "../../domain/damage/OngoingEffect";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -50,16 +51,20 @@ function migrateBodyPart(raw: unknown, index: number, defaults: BodyPart[]): Bod
     isHardSp: asBoolean(record.isHardSp, false),
     cybernetic,
     cyberneticProperties: cybernetic
-      ? {
-          ...createCyberneticProperties(),
-          sdp: asNumber(cyberRaw?.sdp, 0),
-          sdpDamageTaken: asNumber(cyberRaw?.sdpDamageTaken, 0),
-          disabled: asBoolean(cyberRaw?.disabled, false),
-          hydraulicRams: asBoolean(cyberRaw?.hydraulicRams, false),
-          reinforcedJoints: asBoolean(cyberRaw?.reinforcedJoints, false),
-          thickenedMyomar: asBoolean(cyberRaw?.thickenedMyomar, false),
-          empShielding: asBoolean(cyberRaw?.empShielding, false),
-        }
+      ? (() => {
+          const props = {
+            ...createCyberneticProperties(),
+            sdpDamageTaken: asNumber(cyberRaw?.sdpDamageTaken, 0),
+            disabled: asBoolean(cyberRaw?.disabled, false),
+            hydraulicRams: asBoolean(cyberRaw?.hydraulicRams, false),
+            reinforcedJoints: asBoolean(cyberRaw?.reinforcedJoints, false),
+            thickenedMyomar: asBoolean(cyberRaw?.thickenedMyomar, false),
+            empShielding: asBoolean(cyberRaw?.empShielding, false),
+          };
+          clearInvalidCyberneticLimbOptions(fallback.location, props);
+          clampCyberneticSdpDamage(fallback.location, props);
+          return props;
+        })()
       : undefined,
   };
 }

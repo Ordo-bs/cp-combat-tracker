@@ -15,9 +15,10 @@ import type { UiElement } from "../types";
 interface HitCalculatorProps {
   sheet: CombatSheet;
   onApplied?: () => void;
+  onClose?: () => void;
 }
 
-export function HitCalculator({ sheet, onApplied }: HitCalculatorProps): UiElement | null {
+export function HitCalculator({ sheet, onApplied, onClose }: HitCalculatorProps): UiElement | null {
   const { actionExecutor, combatLogService, damageTypeRegistry } = usePluginContext();
   const isVehicle = isVehicleSheet(sheet);
   const [damageType, setDamageType] = useState<DamageType>("regular");
@@ -154,9 +155,16 @@ export function HitCalculator({ sheet, onApplied }: HitCalculatorProps): UiEleme
         </label>
       )}
 
-      <button type="button" className="mod-cta" onClick={apply}>
-        Apply
-      </button>
+      <div className="cp-card__button-row">
+        <button type="button" className="mod-cta" onClick={apply}>
+          Apply
+        </button>
+        {onClose && (
+          <button type="button" onClick={onClose}>
+            Close
+          </button>
+        )}
+      </div>
     </div>
   );
 }
