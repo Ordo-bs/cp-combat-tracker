@@ -20,7 +20,7 @@ export class InitiativeSidebarView extends ItemView {
   }
 
   getDisplayText(): string {
-    return "Combat Tracker";
+    return "Combat tracker";
   }
 
   getIcon(): string {

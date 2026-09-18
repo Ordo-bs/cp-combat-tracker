@@ -38,7 +38,7 @@ export const CombatCard = memo(function CombatCard({
     setShowHit(panel === "hit");
     setShowStun(panel === "stun");
     setShowAdrenal(panel === "adrenal");
-    requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
       expandedRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       expandedRef.current?.focus();
     });

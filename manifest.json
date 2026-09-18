@@ -2,8 +2,9 @@
   "id": "cp-combat-tracker",
   "name": "CP Combat Tracker",
   "version": "0.1.0",
-  "minAppVersion": "1.5.0",
-  "description": "Cyberpunk 2020 combat tracker with initiative sidebar, combat sheets, and template support.",
+  "minAppVersion": "1.7.2",
+  "description": "Track Cyberpunk 2020 combat with an initiative sidebar, combat sheets, and note templates.",
   "author": "ordob",
+  "authorUrl": "https://github.com/Ordo-bs",
   "isDesktopOnly": false
 }

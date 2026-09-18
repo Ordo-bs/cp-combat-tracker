@@ -1,139 +1,56 @@
-# CP Combat Tracker (Obsidian Plugin)
+# CP Combat Tracker
 
-Cyberpunk 2020 combat tracker for Obsidian. This repository contains the plugin source; architecture is defined in `Architecture.md` (see your vault copy).
+Track Cyberpunk 2020 combat inside your vault: initiative, combat sheets, hit/damage resolution, status effects, and reusable templates.
 
-**Repository:** https://github.com/Ordo-bs/cp-combat-tracker
-## Prerequisites
+This is an unofficial fan tool. It is not affiliated with R. Talsorian Games or CD Projekt.
 
-- [Node.js](https://nodejs.org/) 18+
-- [Obsidian](https://obsidian.md/) 1.5+
-- A vault with **Community plugins** enabled
+## Install
 
-## Quick start
+1. In Obsidian, open **Settings → Community plugins**.
+2. Turn on community plugins if they are disabled.
+3. Choose **Browse**, search for **CP Combat Tracker**, and install it.
+4. Enable the plugin.
 
-### 1. Install dependencies
+Until the plugin is listed in the community directory, you can also install it from this repository: download `main.js`, `manifest.json`, and `styles.css` from the latest [GitHub release](https://github.com/Ordo-bs/cp-combat-tracker/releases) into `.obsidian/plugins/cp-combat-tracker/`, then enable it under **Installed plugins**.
 
-```powershell
-cd "C:\CPxObsidian Plug-in v2"
-npm install
+Requires Obsidian 1.7.2 or later. The plugin does not use Node or Electron APIs, so it can run on mobile. Phone layouts are cramped; a tablet or desktop is recommended.
+
+## Use
+
+1. Open the **combat tracker** from the swords ribbon icon, or run the command **Open combat tracker sidebar**.
+2. Choose **+ Add** to create a PC, NPC, or vehicle combat sheet.
+3. Roll or edit initiative, then use **Next** / **Previous** to walk the round.
+4. On a combatant's card, apply hits, stun/death saves, ammo, and speedware (Sandevistan, adrenal booster).
+5. Click **Edit** on a card to change the sheet. **Clear** removes NPCs and vehicles and keeps player characters.
+
+Encounter state is stored in plugin data for the current vault. Nothing is sent over the network.
+
+### Combat sheet templates
+
+Put a `combat-sheet` fenced block in a note. In Reading or Live Preview, the block becomes a card with **Add to combat** and **Edit and add to combat**.
+
+```combat-sheet
+version: 1
+sheetType: NPC
+name: Boosterganger
+initiativeModifier: 0
+btm: -2
+baseStunSave: 8
+maximumShots: 30
+body.head.sp: 0
+body.torso.sp: 4
 ```
 
-### 2. Build (or watch)
+From the sheet editor, **Copy template** writes a block to the clipboard so you can paste it into a note.
 
-Development with auto-rebuild:
+## Privacy
 
-```powershell
-npm run dev
-```
+- Combat data stays in the vault (plugin `data.json` and your notes).
+- There is no telemetry and no network use.
+- **Copy template** uses the system clipboard (`navigator.clipboard`) only when you click that button.
 
-One-off production build:
+## Support
 
-```powershell
-npm run build
-```
+Issues and feature requests: [github.com/Ordo-bs/cp-combat-tracker](https://github.com/Ordo-bs/cp-combat-tracker).
 
-### 3. Link the plugin into your vault
-
-Obsidian loads plugins from:
-
-```
-<your-vault>/.obsidian/plugins/<plugin-id>/
-```
-
-This plugin id is **`cp-combat-tracker`**. The folder must contain at least:
-
-- `manifest.json`
-- `main.js`
-- `styles.css`
-
-#### Option A — Junction (recommended for development)
-
-Run once from an elevated or normal PowerShell session:
-
-```powershell
-.\scripts\link-to-vault.ps1 -VaultPath "C:\Users\ordob\Documents\Sync_vault"
-```
-
-Use your **vault root** — the folder you open in Obsidian — not a subfolder like `Cyberpunk/`.
-If `Cyberpunk` is just a notes folder inside `Sync_vault`, the link target must still be `Sync_vault`.
-
-This creates a directory junction so Obsidian reads directly from this project folder. Edits rebuild into the same location Obsidian uses.
-
-#### Option B — Manual copy
-
-Copy the entire project folder to:
-
-```
-C:\Users\ordob\Documents\Sync_vault\.obsidian\plugins\cp-combat-tracker\
-```
-
-Re-copy (or rebuild in place) after changes if not using a junction.
-
-### 4. Enable in Obsidian
-
-1. Open your **Sync_vault** vault in Obsidian (not a subfolder path).
-2. **Settings → Community plugins → Turn off Restricted mode** / turn on community plugins.
-3. On the same page, scroll to **Installed plugins** — **CP Combat Tracker** appears here.
-   Local dev plugins do **not** appear under **Browse** (that list is only for the community catalog).
-4. Enable **CP Combat Tracker**.
-5. Click the **swords** ribbon icon, or run command **Open Combat Tracker sidebar**.
-
-You should see the Combat Tracker sidebar with placeholder toolbar buttons and an empty encounter message.
-
-## Project layout
-
-Matches the architecture specification (implementation fills these in over time):
-
-```
-src/
-  main.ts                 # Plugin entry, view registration
-  plugin/                 # DI / plugin context
-  domain/                 # Combat sheets, initiative, rules (no React)
-  services/               # Application services
-  infrastructure/         # Obsidian integration, parser, repository
-  ui/                     # React components
-  events/                 # Event dispatcher
-  util/                   # Shared utilities
-  constants/              # View types, enums
-  tests/                  # Vitest unit tests
-```
-
-## Scripts
-
-| Command        | Description                          |
-| -------------- | ------------------------------------ |
-| `npm run dev`  | Watch build → `main.js`              |
-| `npm run build`| Typecheck + production bundle        |
-| `npm test`     | Run unit tests                       |
-
-## Troubleshooting
-
-**Plugin does not appear**
-
-- Confirm you linked to the **vault root** (e.g. `Sync_vault`), not a subfolder like `Sync_vault/Cyberpunk`.
-- Look under **Installed plugins**, not **Browse**.
-- Turn off **Restricted mode** in Community plugins settings.
-- Confirm the folder name under `.obsidian/plugins/` matches manifest id: `cp-combat-tracker`.
-- Confirm `main.js` exists (run `npm run build`).
-- Reload Obsidian (**Ctrl+R**) after the first build.
-
-**Sidebar is blank**
-
-- Open DevTools: **Ctrl+Shift+I** → Console for React/runtime errors.
-- Reload Obsidian: **Ctrl+R** (or disable/re-enable the plugin).
-
-**Changes not showing**
-
-- Ensure `npm run dev` is running, or run `npm run build` after edits.
-- Reload Obsidian after the first build.
-
-## Progress
-
-See [`PROGRESS.md`](PROGRESS.md) for implementation status (steps 1–9 and the Hit/Damage Calculator are in; integration tests and UI polish remain).
-
-## Next implementation steps
-
-1. Integration tests
-2. UI polishing
-
-The Hit/Damage Calculator is implemented. See [`docs/hit-damage-calculator-implementation-plan.md`](docs/hit-damage-calculator-implementation-plan.md).
+Developers: see [CONTRIBUTING.md](CONTRIBUTING.md).

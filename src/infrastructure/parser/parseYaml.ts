@@ -18,7 +18,7 @@ export function parseYamlDocument(
       };
     }
 
-    const data = doc.toJSON();
+    const data: unknown = doc.toJSON();
     if (data === null || typeof data !== "object" || Array.isArray(data)) {
       return {
         errors: [{ file: fileName, line: baseLine, message: "Template root must be a YAML mapping." }],

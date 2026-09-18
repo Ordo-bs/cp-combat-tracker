@@ -13,7 +13,6 @@ import {
   type CombatSheet,
 } from "../../domain/sheets/CombatSheet";
 import {
-  BodyLocation,
   createCyberneticProperties,
   type BodyPart,
   type CyberneticProperties,
@@ -462,7 +461,7 @@ function BodyPartEditor({
   part: BodyPart;
   onChange: (part: BodyPart) => void;
 }): UiElement {
-  const label = BODY_LOCATION_LABELS[part.location as BodyLocation] ?? part.location;
+  const label = BODY_LOCATION_LABELS[part.location];
 
   return (
     <div className="cp-editor__body-part">

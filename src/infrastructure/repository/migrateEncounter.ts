@@ -208,7 +208,7 @@ export function migrateEncounter(raw: unknown): CombatEncounter | null {
     },
     activeCombatantId:
       typeof encounterRaw.activeCombatantId === "string" || encounterRaw.activeCombatantId === null
-        ? (encounterRaw.activeCombatantId as string | null)
+        ? encounterRaw.activeCombatantId
         : null,
     createdAt: asNumber(encounterRaw.createdAt, Date.now()),
     roundNumber: Math.max(1, Math.floor(asNumber(encounterRaw.roundNumber, 1))),

@@ -30,8 +30,3 @@ export class SaveResolver implements IStunResolver, IDeathResolver {
   }
 }
 
-/** @deprecated Use SaveResolver */
-export class PlaceholderStunResolver extends SaveResolver {}
-
-/** @deprecated Use SaveResolver */
-export class PlaceholderDeathResolver extends SaveResolver {}

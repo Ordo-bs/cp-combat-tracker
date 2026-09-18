@@ -217,11 +217,11 @@ export function CardOverflowMenu({
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
+    activeDocument.addEventListener("mousedown", onPointerDown);
+    activeDocument.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
+      activeDocument.removeEventListener("mousedown", onPointerDown);
+      activeDocument.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
 
@@ -414,7 +414,7 @@ export function CardActions({
       if (!result.valid) {
         new Notice(result.errors.join(" "));
       }
-      requestAnimationFrame(blurIfDetached);
+      window.requestAnimationFrame(blurIfDetached);
     });
   };
 

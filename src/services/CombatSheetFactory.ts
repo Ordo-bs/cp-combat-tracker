@@ -6,7 +6,6 @@ import { WoundState } from "../domain/rules/WoundState";
 import { createEmptyStatusCollection } from "../domain/status/Status";
 import { isNpcSheet, type CombatSheet, type NpcCombatSheet, type PcCombatSheet, type VehicleCombatSheet } from "../domain/sheets/CombatSheet";
 import {
-  BodyLocation,
   createAmmoComponent,
   createBodyComponent,
   createBodyPart,
@@ -170,7 +169,7 @@ export class CombatSheetFactory implements ICombatSheetFactory {
   private bodyFromTemplate(template: NpcCombatTemplate): NpcCombatSheet["body"] {
     const body = createBodyComponent();
     return body.map((part) => {
-      const source = template.body[part.location as BodyLocation];
+      const source = template.body[part.location];
       if (!source) {
         return part;
       }

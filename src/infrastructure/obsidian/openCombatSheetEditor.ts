@@ -19,7 +19,7 @@ export async function openCombatSheetEditor(
       draftSheet: state.draftSheet,
     },
   });
-  app.workspace.revealLeaf(leaf);
+  void app.workspace.revealLeaf(leaf);
 }
 
 export async function openNewCombatSheetEditor(app: App): Promise<void> {

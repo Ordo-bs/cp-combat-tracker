@@ -1,4 +1,3 @@
-import type { App } from "obsidian";
 import type { TemplateParseResult } from "../domain/combat/CombatTemplate";
 import type { CombatSheet } from "../domain/sheets/CombatSheet";
 import {
@@ -11,11 +10,7 @@ import type { TFile } from "obsidian";
 export interface ITemplateService {
   parseMarkdown(content: string, file: TFile): TemplateParseResult;
   parseBlockSource(yamlSource: string, file: TFile): TemplateParseResult;
-  /** @deprecated From Note was removed from the combat tracker toolbar. */
-  parseActiveNoteAsync(app: App): Promise<TemplateParseResult>;
   instantiateFromBlock(yamlSource: string, file: TFile): { sheet?: CombatSheet; errors: string[] };
-  /** @deprecated From Note was removed from the combat tracker toolbar. */
-  instantiateFromActiveNote(app: App): Promise<{ sheet?: CombatSheet; errors: string[] }>;
 }
 
 export class TemplateService implements ITemplateService {
@@ -36,33 +31,6 @@ export class TemplateService implements ITemplateService {
 
   instantiateFromBlock(yamlSource: string, file: TFile): { sheet?: CombatSheet; errors: string[] } {
     const result = this.parseBlockSource(yamlSource, file);
-    if (!result.success || !result.template) {
-      return {
-        errors: result.errors.length > 0 ? [formatTemplateErrors(result.errors)] : ["Parse failed."],
-      };
-    }
-
-    return { sheet: this.factory.instantiateFromTemplate(result.template), errors: [] };
-  }
-
-  /** @deprecated From Note was removed from the combat tracker toolbar. */
-  async parseActiveNoteAsync(app: App): Promise<TemplateParseResult> {
-    const file = app.workspace.getActiveFile();
-    if (!file || file.extension !== "md") {
-      return {
-        success: false,
-        errors: [{ message: "Open a markdown note containing a combat-sheet block." }],
-        warnings: [],
-      };
-    }
-
-    const markdown = await app.vault.cachedRead(file);
-    return this.parseMarkdown(markdown, file);
-  }
-
-  /** @deprecated From Note was removed from the combat tracker toolbar. */
-  async instantiateFromActiveNote(app: App): Promise<{ sheet?: CombatSheet; errors: string[] }> {
-    const result = await this.parseActiveNoteAsync(app);
     if (!result.success || !result.template) {
       return {
         errors: result.errors.length > 0 ? [formatTemplateErrors(result.errors)] : ["Parse failed."],

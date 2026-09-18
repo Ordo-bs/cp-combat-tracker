@@ -5,7 +5,6 @@ import { CombatSheetType } from "../../domain/combat/CombatSheetType";
 import type { PluginContext } from "../../plugin/PluginContext";
 import { AppContext } from "../../ui/context/AppContext";
 import { CombatSheetEditorRoot } from "../../ui/editor/CombatSheetEditorRoot";
-import type { CombatSheet } from "../../domain/sheets/CombatSheet";
 import type { CombatSheetEditorViewState } from "../../ui/editor/editorTypes";
 
 function normalizeViewState(state: unknown): CombatSheetEditorViewState {
@@ -14,7 +13,7 @@ function normalizeViewState(state: unknown): CombatSheetEditorViewState {
     mode: partial.mode ?? "draft",
     combatantId: partial.combatantId,
     sheetType: partial.sheetType ?? CombatSheetType.NPC,
-    draftSheet: partial.draftSheet as CombatSheet | undefined,
+    draftSheet: partial.draftSheet,
   };
 }
 
@@ -37,7 +36,7 @@ export class CombatSheetEditorView extends ItemView {
   }
 
   getDisplayText(): string {
-    return this.viewState.mode === "draft" ? "New Combat Sheet" : "Combat Sheet Editor";
+    return this.viewState.mode === "draft" ? "New combat sheet" : "Combat sheet editor";
   }
 
   getIcon(): string {

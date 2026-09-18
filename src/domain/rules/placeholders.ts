@@ -39,7 +39,7 @@ export interface IRuleEngine {
 }
 
 export interface IDamageEngine {
-  // applyHit, applyExplosion, etc.
+  resolve?(input: unknown): unknown;
 }
 
 export interface IStatusEffectProcessor {

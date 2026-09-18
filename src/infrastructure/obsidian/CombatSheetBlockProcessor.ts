@@ -71,7 +71,7 @@ function renderTemplateCard(
   const actionRow = el.createDiv({ cls: "cp-template-block__actions" });
   const addButton = actionRow.createEl("button", {
     cls: "mod-cta cp-template-block__button",
-    text: "Add to Combat",
+    text: "Add to combat",
   });
   addButton.type = "button";
   addButton.addEventListener("click", (event) => {

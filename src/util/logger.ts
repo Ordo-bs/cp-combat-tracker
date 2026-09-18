@@ -5,13 +5,14 @@ export interface ILogger {
   error(message: string, context?: Record<string, unknown>): void;
 }
 
+/** Production logger: errors and warnings only. Debug/info are no-ops. */
 export class ConsoleLogger implements ILogger {
-  debug(message: string, context?: Record<string, unknown>): void {
-    console.debug(`[CP Combat Tracker] ${message}`, context ?? "");
+  debug(_message: string, _context?: Record<string, unknown>): void {
+    // Intentionally empty: shipped plugins should not log debug noise.
   }
 
-  info(message: string, context?: Record<string, unknown>): void {
-    console.info(`[CP Combat Tracker] ${message}`, context ?? "");
+  info(_message: string, _context?: Record<string, unknown>): void {
+    // Intentionally empty: shipped plugins should not log info noise.
   }
 
   warn(message: string, context?: Record<string, unknown>): void {

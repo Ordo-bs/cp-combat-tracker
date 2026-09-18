@@ -26,16 +26,6 @@ export function SidebarToolbar(): UiElement {
     void openNewCombatSheetEditor(app);
   };
 
-  // @deprecated From Note was removed from the toolbar. Keep this handler for reference.
-  // const handleFromNote = async (): Promise<void> => {
-  //   const { sheet, errors } = await templateService.instantiateFromActiveNote(app);
-  //   if (errors.length > 0 || !sheet) {
-  //     new Notice(errors[0] ?? "Failed to parse template.");
-  //     return;
-  //   }
-  //   await openDraftCombatSheetEditor(app, sheet);
-  // };
-
   const handlePrevious = (): void => {
     initiativeService.previousTurn();
   };

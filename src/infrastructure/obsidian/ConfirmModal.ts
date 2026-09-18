@@ -16,13 +16,13 @@ export function openConfirmModal(app: App, options: ConfirmModalOptions): Promis
 }
 
 export function blurActiveElement(): void {
-  if (document.activeElement instanceof HTMLElement) {
-    document.activeElement.blur();
+  if (activeDocument.activeElement instanceof HTMLElement) {
+    activeDocument.activeElement.blur();
   }
 }
 
 export function blurIfDetached(): void {
-  const active = document.activeElement;
+  const active = activeDocument.activeElement;
   if (active instanceof HTMLElement && !active.isConnected) {
     active.blur();
   }

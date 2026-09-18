@@ -4,7 +4,6 @@ import type {
   DeathOutcome,
   ResolutionEvent,
   ResolutionResult,
-  StunOutcome,
 } from "../../domain/damage/DamageResult";
 import type { FireSource } from "../../domain/damage/FireSource";
 import {
@@ -35,6 +34,7 @@ import {
   type NpcCombatSheet,
   type VehicleCombatSheet,
 } from "../../domain/sheets/CombatSheet";
+import { WoundState } from "../../domain/rules/WoundState";
 import { BodyLocation, type BodyPart } from "../../domain/sheets/components";
 import { hasStatus, setStatus } from "../../domain/status/Status";
 import { StatusType } from "../../domain/status/StatusType";
@@ -215,7 +215,7 @@ export class DamageEngine {
       }
       const tick = live.type === "acid"
         ? this.applyAcidTick(working, live)
-        : this.applyFireTick(working, live as FireEffect);
+        : this.applyFireTick(working, live);
       this.merge(combined, tick);
       if (!tick.success) {
         return this.finish(tick);
@@ -1157,20 +1157,18 @@ function definitionLabel(type: DamageType): string {
   return DAMAGE_TYPE_LABELS[type];
 }
 
-function woundLabel(wound: ReturnType<IDamageThresholdService["getWoundState"]>): string {
+function woundLabel(wound: WoundState): string {
   switch (wound) {
-    case "NONE":
+    case WoundState.NONE:
       return "unwounded";
-    case "LIGHT":
+    case WoundState.LIGHT:
       return "Lightly Wounded";
-    case "SERIOUS":
+    case WoundState.SERIOUS:
       return "Seriously Wounded";
-    case "CRITICAL":
+    case WoundState.CRITICAL:
       return "Critically Wounded";
-    case "MORTAL":
+    case WoundState.MORTAL:
       return "Mortally Wounded";
-    default:
-      return wound;
   }
 }
 

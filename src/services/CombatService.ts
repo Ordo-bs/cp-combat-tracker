@@ -198,7 +198,7 @@ export class CombatService implements ICombatService {
       return this.speedwareFailure("Speedware is not available on vehicles.");
     }
 
-    let duration = rounds;
+    let duration: number;
     let summary: string;
     if (isNpcSheet(sheet)) {
       if (!this.diceService) {
@@ -208,15 +208,16 @@ export class CombatService implements ICombatService {
       duration = roll.total + 2;
       summary = `Adrenal booster: 1d6+2 = ${duration} → +${ADRENAL_BONUS} initiative for ${duration} rounds.`;
     } else {
-      if (duration === undefined || !Number.isInteger(duration) || duration < 1) {
+      if (rounds === undefined || !Number.isInteger(rounds) || rounds < 1) {
         return this.speedwareFailure("Number of rounds must be at least 1.");
       }
+      duration = rounds;
       summary = `Adrenal booster: +${ADRENAL_BONUS} initiative for ${duration} rounds.`;
     }
     return this.activateSpeedwareEffect(
       combatantId,
       StatusType.ADRENAL_BOOSTER,
-      duration as number,
+      duration,
       ADRENAL_BONUS,
       summary,
     );
