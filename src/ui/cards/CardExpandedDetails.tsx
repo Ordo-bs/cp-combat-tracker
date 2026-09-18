@@ -45,18 +45,12 @@ export function CardExpandedDetails({
       {derived && isNpcSheet(sheet) && (
         <section className="cp-card-details__section" aria-label="Combat sheet">
           <dl className="cp-card-details__stats">
-            <div>
-              <dt>Total damage</dt>
-              <dd>{sheet.damage.totalDamage}</dd>
-            </div>
-            <div>
-              <dt>Modified Stun Save</dt>
-              <dd>{formatDerivedSave(derived.modifiedStunSave)}</dd>
-            </div>
-            <div>
-              <dt>Modified Death Save</dt>
-              <dd>{formatDerivedSave(derived.modifiedDeathSave)}</dd>
-            </div>
+            <dt>Total damage</dt>
+            <dd>{sheet.damage.totalDamage}</dd>
+            <dt>Modified stun save</dt>
+            <dd>{formatDerivedSave(derived.modifiedStunSave)}</dd>
+            <dt>Modified death save</dt>
+            <dd>{formatDerivedSave(derived.modifiedDeathSave)}</dd>
           </dl>
           {bodyLines.length > 0 && (
             <ul className="cp-card-details__parts">

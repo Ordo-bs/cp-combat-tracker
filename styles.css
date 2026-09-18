@@ -323,10 +323,6 @@
   margin: 0;
 }
 
-.cp-card-details__stats > div {
-  display: contents;
-}
-
 .cp-card-details__stats dt {
   margin: 0;
   font-size: var(--font-ui-small);
