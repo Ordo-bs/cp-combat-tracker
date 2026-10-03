@@ -11,7 +11,7 @@ import { DamageThresholdService } from "../services/DamageThresholdService";
 import { ScriptedDiceService } from "../services/DiceService";
 import {
   buildExpandedStatusItems,
-  expandedBodyPartLines,
+  expandedBodyPartCells,
   formatDerivedSave,
 } from "../ui/cards/expandedCardModel";
 
@@ -73,7 +73,7 @@ describe("expanded card details", () => {
     expect(remainingEffectApplications(sheet, "acid")).toBe(1);
   });
 
-  it("lists body parts with SP, damage, cyber, remaining SDP, and EMP shielding", () => {
+  it("lists every body part as SP and damage, marking cybernetic limbs", () => {
     const sheet = factory().createDraft(CombatSheetType.NPC, "Rogue", 10);
     if (!isNpcSheet(sheet)) {
       throw new Error("expected NPC");
@@ -93,11 +93,14 @@ describe("expanded card details", () => {
     arm.cybernetic = true;
     arm.cyberneticProperties = createCyberneticProperties();
 
-    const lines = expandedBodyPartLines(sheet.body).map((line) => line.text);
-    expect(lines).toEqual([
-      "Head — SP 12",
-      "Torso — SP 10, Damage 4, Cyber, SDP 18, EMP shielding",
-      "Left Arm — Cyber",
+    const cells = expandedBodyPartCells(sheet.body);
+    expect(cells.map((cell) => `${cell.code} ${cell.sp}/${cell.damage}${cell.cybernetic ? " cyber" : ""}`)).toEqual([
+      "H 12/0",
+      "T 10/4 cyber",
+      "RA 0/0",
+      "LA 0/0 cyber",
+      "RL 0/0",
+      "LL 0/0",
     ]);
   });
 
@@ -116,9 +119,12 @@ describe("expanded card details", () => {
     expect(items).toContain("Right Arm disabled");
     expect(items).toContain("Head destroyed");
 
-    const lines = expandedBodyPartLines(sheet.body).map((line) => line.text);
-    expect(lines).toContain("Head — Destroyed");
-    expect(lines).toContain("Right Arm — Cyber, Disabled");
+    const cells = expandedBodyPartCells(sheet.body);
+    expect(cells.find((cell) => cell.key === BodyLocation.HEAD)).toMatchObject({ code: "H", cybernetic: false });
+    expect(cells.find((cell) => cell.key === BodyLocation.RIGHT_ARM)).toMatchObject({
+      code: "RA",
+      cybernetic: true,
+    });
   });
 
   it("shows full status names with remaining activations", () => {

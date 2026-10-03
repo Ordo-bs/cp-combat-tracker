@@ -112,6 +112,23 @@ export function Section({ title, children }: SectionProps): UiElement {
   );
 }
 
+interface ObsidianIconProps {
+  icon: string;
+  className?: string;
+}
+
+export function ObsidianIcon({ icon, className }: ObsidianIconProps): UiElement {
+  const iconRef = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    if (iconRef.current) {
+      setIcon(iconRef.current, icon);
+    }
+  }, [icon]);
+
+  return <span ref={iconRef} className={className ?? "cp-icon-button-icon"} aria-hidden="true" />;
+}
+
 interface IconButtonProps {
   icon: string;
   label: string;
@@ -119,22 +136,34 @@ interface IconButtonProps {
   disabled?: boolean;
   cta?: boolean;
   title?: string;
+  className?: string;
+  ariaExpanded?: boolean;
 }
 
-export function IconButton({ icon, label, onClick, disabled, cta, title }: IconButtonProps): UiElement {
+export function IconButton({
+  icon,
+  label,
+  onClick,
+  disabled,
+  cta,
+  title,
+  className,
+  ariaExpanded,
+}: IconButtonProps): UiElement {
   const iconRef = useRef<HTMLSpanElement>(null);
 
   useLayoutEffect(() => {
     if (iconRef.current) {
       setIcon(iconRef.current, icon);
     }
-  });
+  }, [icon]);
 
   return (
     <button
       type="button"
-      className={`cp-icon-button${cta ? " mod-cta" : ""}`}
+      className={`cp-icon-button${cta ? " mod-cta" : ""}${className ? ` ${className}` : ""}`}
       aria-label={label}
+      aria-expanded={ariaExpanded}
       title={title ?? label}
       disabled={disabled}
       onClick={onClick}

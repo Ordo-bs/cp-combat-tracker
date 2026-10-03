@@ -1,9 +1,10 @@
 import type { UiElement } from "../types";
 import { isNpcSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
 import type { IDamageThresholdService } from "../../services/DamageThresholdService";
+import { ObsidianIcon } from "../editor/EditorFields";
 import {
   buildExpandedStatusItems,
-  expandedBodyPartLines,
+  expandedBodyPartCells,
   formatDerivedSave,
 } from "./expandedCardModel";
 
@@ -24,7 +25,7 @@ export function CardExpandedDetails({
         sheet.damage.baseDeathSave,
       )
     : null;
-  const bodyLines = isNpcSheet(sheet) ? expandedBodyPartLines(sheet.body) : [];
+  const bodyCells = isNpcSheet(sheet) ? expandedBodyPartCells(sheet.body) : [];
 
   return (
     <div className="cp-card-details">
@@ -52,13 +53,20 @@ export function CardExpandedDetails({
             <dt>Modified death save</dt>
             <dd>{formatDerivedSave(derived.modifiedDeathSave)}</dd>
           </dl>
-          {bodyLines.length > 0 && (
-            <ul className="cp-card-details__parts">
-              {bodyLines.map((line) => (
-                <li key={line.key}>{line.text}</li>
-              ))}
-            </ul>
-          )}
+          <ul className="cp-card-details__parts">
+            {bodyCells.map((cell) => (
+              <li key={cell.key} className="cp-card-details__part" title={cell.label}>
+                <span>
+                  {cell.code} {cell.sp}/{cell.damage}
+                </span>
+                {cell.cybernetic && (
+                  <span className="cp-card-details__part-icon" aria-label="Cybernetic">
+                    <ObsidianIcon icon="cpu" />
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
     </div>

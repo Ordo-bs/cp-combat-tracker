@@ -1,4 +1,5 @@
-import { Notice } from "obsidian";
+import { useLayoutEffect, useRef } from "react";
+import { Notice, setIcon } from "obsidian";
 import { blurActiveElement, openConfirmModal } from "../../infrastructure/obsidian/ConfirmModal";
 import type { UiElement } from "../types";
 import {
@@ -18,9 +19,16 @@ export function SidebarToolbar(): UiElement {
   const encounter = useEncounter();
   const { initiativeService, encounterService } = usePluginContext();
 
+  const clearIconRef = useRef<HTMLSpanElement>(null);
   const combatantsExist = hasCombatants(encounter);
   const active = getActiveSheet(encounter);
   const pendingEffects = active ? hasUnresolvedPendingEffects(active) : false;
+
+  useLayoutEffect(() => {
+    if (clearIconRef.current) {
+      setIcon(clearIconRef.current, "eraser");
+    }
+  });
 
   const handleAdd = (): void => {
     void openNewCombatSheetEditor(app);
@@ -62,34 +70,40 @@ export function SidebarToolbar(): UiElement {
   return (
     <div className="cp-combat-tracker__toolbar">
       <div className="cp-combat-tracker__toolbar-row">
+        <button type="button" className="mod-cta" onClick={handleAdd}>
+          + Add
+        </button>
         <IconButton
-          icon="arrow-left"
+          icon="chevron-up"
           label="Previous"
           onClick={handlePrevious}
           disabled={!combatantsExist}
         />
-        <button type="button" className="mod-cta" onClick={handleAdd}>
-          + Add
-        </button>
-        <button type="button" onClick={handleClear} disabled={!combatantsExist}>
-          Clear
-        </button>
         <IconButton
-          icon="arrow-right"
+          icon="chevron-down"
           label="Next"
           onClick={handleNext}
           disabled={!combatantsExist || pendingEffects}
           title={pendingEffects ? "Resolve pending effects first." : "Next"}
         />
+        <button
+          type="button"
+          className="cp-combat-tracker__clear"
+          onClick={handleClear}
+          disabled={!combatantsExist}
+        >
+          <span ref={clearIconRef} className="cp-icon-button-icon" aria-hidden="true" />
+          Clear
+        </button>
       </div>
       {isQueueDirty(encounter) && (
         <span className="cp-combat-tracker__dirty-indicator" title="Initiative updates apply when a new round begins">
           Initiative updates pending
         </span>
       )}
-      {combatantsExist && (
+      {combatantsExist && encounter && (
         <span className="cp-combat-tracker__count">
-          {getOrderedCombatants(encounter).length} combatants
+          {getOrderedCombatants(encounter).length} combatants · Round {encounter.roundNumber}
         </span>
       )}
     </div>

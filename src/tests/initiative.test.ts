@@ -190,12 +190,14 @@ describe("RuleTables", () => {
     const { lookupDamageRule } = await import("../domain/rules/RuleTables");
     const { WoundState, woundStateCardLabel } = await import("../domain/rules/WoundState");
 
-    expect(woundStateCardLabel(WoundState.NONE)).toBeNull();
-    expect(woundStateCardLabel(WoundState.LIGHT)).toBe("LI");
-    expect(woundStateCardLabel(WoundState.MORTAL)).toBe("M");
-    expect(woundStateCardLabel(WoundState.MORTAL, lookupDamageRule(13).deathPenalty)).toBe("M0");
-    expect(woundStateCardLabel(WoundState.MORTAL, lookupDamageRule(17).deathPenalty)).toBe("M1");
-    expect(woundStateCardLabel(WoundState.MORTAL, lookupDamageRule(21).deathPenalty)).toBe("M2");
-    expect(woundStateCardLabel(WoundState.MORTAL, lookupDamageRule(57).deathPenalty)).toBe("M+");
+    expect(woundStateCardLabel(WoundState.NONE)).toBe("Unharmed");
+    expect(woundStateCardLabel(WoundState.LIGHT)).toBe("Light");
+    expect(woundStateCardLabel(WoundState.SERIOUS)).toBe("Serious");
+    expect(woundStateCardLabel(WoundState.CRITICAL)).toBe("Critical");
+    expect(woundStateCardLabel(WoundState.MORTAL)).toBe("Mortal");
+    expect(woundStateCardLabel(WoundState.MORTAL, lookupDamageRule(13).deathPenalty)).toBe("Mortal 0");
+    expect(woundStateCardLabel(WoundState.MORTAL, lookupDamageRule(17).deathPenalty)).toBe("Mortal 1");
+    expect(woundStateCardLabel(WoundState.MORTAL, lookupDamageRule(21).deathPenalty)).toBe("Mortal 2");
+    expect(woundStateCardLabel(WoundState.MORTAL, lookupDamageRule(57).deathPenalty)).toBe("Mortal +");
   });
 });

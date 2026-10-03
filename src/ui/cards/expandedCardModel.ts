@@ -1,7 +1,7 @@
-import { remainingCyberneticSdp, remainingEffectApplications } from "../../domain/damage/sheetEffects";
+import { remainingEffectApplications } from "../../domain/damage/sheetEffects";
 import { woundStateExpandedLabel } from "../../domain/rules/WoundState";
 import { isNpcSheet, isPcSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
-import { type BodyPart } from "../../domain/sheets/components";
+import { BodyLocation, type BodyPart } from "../../domain/sheets/components";
 import { getStatus, hasStatus } from "../../domain/status/Status";
 import { StatusType } from "../../domain/status/StatusType";
 import type { IDamageThresholdService } from "../../services/DamageThresholdService";
@@ -28,10 +28,32 @@ export interface ExpandedStatusItem {
   label: string;
 }
 
-export interface ExpandedBodyPartLine {
+export interface ExpandedBodyPartCell {
   key: string;
-  text: string;
+  code: string;
+  label: string;
+  sp: number;
+  damage: number;
+  cybernetic: boolean;
 }
+
+const BODY_PART_CODES: Record<BodyLocation, string> = {
+  [BodyLocation.HEAD]: "H",
+  [BodyLocation.TORSO]: "T",
+  [BodyLocation.RIGHT_ARM]: "RA",
+  [BodyLocation.LEFT_ARM]: "LA",
+  [BodyLocation.RIGHT_LEG]: "RL",
+  [BodyLocation.LEFT_LEG]: "LL",
+};
+
+const BODY_PART_GRID_ORDER: BodyLocation[] = [
+  BodyLocation.HEAD,
+  BodyLocation.TORSO,
+  BodyLocation.RIGHT_ARM,
+  BodyLocation.LEFT_ARM,
+  BodyLocation.RIGHT_LEG,
+  BodyLocation.LEFT_LEG,
+];
 
 export function formatDerivedSave(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
@@ -106,36 +128,17 @@ export function buildExpandedStatusItems(
   return items;
 }
 
-export function expandedBodyPartLines(parts: BodyPart[]): ExpandedBodyPartLine[] {
-  return parts.flatMap((part) => {
-    const disabled = Boolean(part.cybernetic && part.cyberneticProperties?.disabled);
-    if (part.sp <= 0 && part.damage <= 0 && !part.cybernetic && !part.destroyed) {
-      return [];
-    }
-    const bits: string[] = [];
-    if (part.sp > 0) {
-      bits.push(`SP ${part.sp}`);
-    }
-    if (part.damage > 0) {
-      bits.push(`Damage ${part.damage}`);
-    }
-    if (part.cybernetic) {
-      bits.push("Cyber");
-      const cyber = part.cyberneticProperties;
-      if (cyber && cyber.sdpDamageTaken > 0) {
-        bits.push(`SDP ${remainingCyberneticSdp(part.location, cyber)}`);
-      }
-      if (cyber?.empShielding) {
-        bits.push("EMP shielding");
-      }
-      if (disabled) {
-        bits.push("Disabled");
-      }
-    }
-    if (part.destroyed) {
-      bits.push("Destroyed");
-    }
-    const location = BODY_LOCATION_LABELS[part.location];
-    return [{ key: part.location, text: `${location} — ${bits.join(", ")}` }];
+export function expandedBodyPartCells(parts: BodyPart[]): ExpandedBodyPartCell[] {
+  const byLocation = new Map(parts.map((part) => [part.location, part]));
+  return BODY_PART_GRID_ORDER.map((location) => {
+    const part = byLocation.get(location);
+    return {
+      key: location,
+      code: BODY_PART_CODES[location],
+      label: BODY_LOCATION_LABELS[location],
+      sp: part?.sp ?? 0,
+      damage: part?.damage ?? 0,
+      cybernetic: Boolean(part?.cybernetic),
+    };
   });
 }

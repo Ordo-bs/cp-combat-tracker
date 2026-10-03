@@ -41,7 +41,7 @@ export function PendingEffects({ sheet, isActive }: PendingEffectsProps): UiElem
         {fire > 0 && <span className="cp-card__status-badge">Fire × {fire}</span>}
         {acid > 0 && <span className="cp-card__status-badge">Acid × {acid}</span>}
       </div>
-      <button type="button" className="mod-cta" onClick={apply}>
+      <button type="button" className="mod-cta cp-pending-effects__apply" onClick={apply}>
         Apply Effects
       </button>
     </div>

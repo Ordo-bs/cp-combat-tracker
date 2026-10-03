@@ -14,6 +14,7 @@ import {
 } from "../../infrastructure/obsidian/ConfirmModal";
 import { openExistingCombatSheetEditor } from "../../infrastructure/obsidian/openCombatSheetEditor";
 import { useObsidianApp } from "../context/AppContext";
+import { IconButton } from "../editor/EditorFields";
 import { usePluginContext } from "../context/EncounterContext";
 import { toastCombatResult } from "../toastCombatResult";
 import type { CombatLogService } from "../../services/CombatLogService";
@@ -64,68 +65,70 @@ export function NpcControls({
 
   return (
     <div className="cp-card__npc-controls">
-      <div className="cp-card__ammo-summary">
-        Shots: {sheet.ammo.remainingShots}/{sheet.ammo.maximumShots} · Mags:{" "}
-        {sheet.ammo.remainingMagazines}
+      <div className="cp-card__ammo-row">
+        <div className="cp-card__ammo-summary">
+          Shots: {sheet.ammo.remainingShots}/{sheet.ammo.maximumShots} · Mags:{" "}
+          {sheet.ammo.remainingMagazines}
+        </div>
+        <div className="cp-card__ammo-actions">
+          <button
+            type="button"
+            onClick={() =>
+              runAction(actionExecutor.execute.bind(actionExecutor), {
+                type: ActionType.ConsumeAmmo,
+                combatantId: sheet.id,
+                amount: 1,
+              })
+            }
+            disabled={!canConsume(1)}
+            title={!canConsume(1) ? "Insufficient ammunition." : undefined}
+          >
+            -1
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              runAction(actionExecutor.execute.bind(actionExecutor), {
+                type: ActionType.ConsumeAmmo,
+                combatantId: sheet.id,
+                amount: 3,
+              })
+            }
+            disabled={!canConsume(3)}
+            title={!canConsume(3) ? "Insufficient ammunition." : undefined}
+          >
+            -3
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              runAction(actionExecutor.execute.bind(actionExecutor), {
+                type: ActionType.ConsumeAmmo,
+                combatantId: sheet.id,
+                amount: 10,
+              })
+            }
+            disabled={!canConsume(10)}
+            title={!canConsume(10) ? "Insufficient ammunition." : undefined}
+          >
+            -10
+          </button>
+          <IconButton
+            className="cp-card__reload"
+            icon="repeat"
+            label="Reload"
+            title={sheet.ammo.remainingMagazines <= 0 ? "No magazines remaining." : "Reload"}
+            disabled={sheet.ammo.remainingMagazines <= 0}
+            onClick={() =>
+              runAction(actionExecutor.execute.bind(actionExecutor), {
+                type: ActionType.ReloadWeapon,
+                combatantId: sheet.id,
+              })
+            }
+          />
+        </div>
       </div>
-      <div className="cp-card__button-row">
-        <button
-          type="button"
-          onClick={() =>
-            runAction(actionExecutor.execute.bind(actionExecutor), {
-              type: ActionType.ConsumeAmmo,
-              combatantId: sheet.id,
-              amount: 1,
-            })
-          }
-          disabled={!canConsume(1)}
-          title={!canConsume(1) ? "Insufficient ammunition." : undefined}
-        >
-          -1
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            runAction(actionExecutor.execute.bind(actionExecutor), {
-              type: ActionType.ConsumeAmmo,
-              combatantId: sheet.id,
-              amount: 3,
-            })
-          }
-          disabled={!canConsume(3)}
-          title={!canConsume(3) ? "Insufficient ammunition." : undefined}
-        >
-          -3
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            runAction(actionExecutor.execute.bind(actionExecutor), {
-              type: ActionType.ConsumeAmmo,
-              combatantId: sheet.id,
-              amount: 10,
-            })
-          }
-          disabled={!canConsume(10)}
-          title={!canConsume(10) ? "Insufficient ammunition." : undefined}
-        >
-          -10
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            runAction(actionExecutor.execute.bind(actionExecutor), {
-              type: ActionType.ReloadWeapon,
-              combatantId: sheet.id,
-            })
-          }
-          disabled={sheet.ammo.remainingMagazines <= 0}
-          title={sheet.ammo.remainingMagazines <= 0 ? "No magazines remaining." : undefined}
-        >
-          Reload
-        </button>
-      </div>
-      <div className="cp-card__button-row">
+      <div className="cp-card__button-row cp-card__button-row--actions">
         <button
           type="button"
           onClick={() =>
@@ -170,8 +173,10 @@ export function NpcControls({
           sheet={sheet}
           isDead={isDead}
           showNpcSaves
+          alignStart
           onOpenStun={onOpenStunWithModifier}
         />
+        <CardActions sheet={sheet} />
       </div>
     </div>
   );
@@ -340,8 +345,9 @@ export function PcControls({ sheet, onOpenAdrenal }: PcControlsProps): UiElement
   }
   return (
     <div className="cp-card__npc-controls">
-      <div className="cp-card__button-row">
+      <div className="cp-card__button-row cp-card__button-row--actions">
         <CardOverflowMenu sheet={sheet} isDead={false} alignStart onOpenAdrenal={onOpenAdrenal} />
+        <CardActions sheet={sheet} />
       </div>
     </div>
   );
@@ -363,7 +369,7 @@ export function VehicleControls({ sheet, onOpenHitCalculator }: VehicleControlsP
         SP {sheet.sp} · SDP {sheet.sdp}
         {sheet.isDestroyed ? " · Destroyed" : ""}
       </div>
-      <div className="cp-card__button-row">
+      <div className="cp-card__button-row cp-card__button-row--actions">
         <button
           type="button"
           onClick={() =>
@@ -376,6 +382,7 @@ export function VehicleControls({ sheet, onOpenHitCalculator }: VehicleControlsP
         >
           Hit
         </button>
+        <CardActions sheet={sheet} />
       </div>
     </div>
   );
@@ -383,15 +390,9 @@ export function VehicleControls({ sheet, onOpenHitCalculator }: VehicleControlsP
 
 interface CardActionsProps {
   sheet: CombatSheet;
-  isExpanded: boolean;
-  onToggleExpand: () => void;
 }
 
-export function CardActions({
-  sheet,
-  isExpanded,
-  onToggleExpand,
-}: CardActionsProps): UiElement {
+export function CardActions({ sheet }: CardActionsProps): UiElement {
   const app = useObsidianApp();
   const { combatService } = usePluginContext();
 
@@ -426,19 +427,10 @@ export function CardActions({
   };
 
   return (
-    <div className="cp-card__actions">
-      <button type="button" onClick={onToggleExpand} aria-expanded={isExpanded}>
-        {isExpanded ? "Collapse" : "Expand"}
-      </button>
-      <button type="button" onClick={handleEdit}>
-        Edit
-      </button>
-      <button type="button" onClick={handleCopy} title="Copy combatant">
-        Copy
-      </button>
-      <button type="button" onClick={handleDelete} title="Delete combatant">
-        Delete
-      </button>
+    <div className="cp-card__manage">
+      <IconButton icon="pencil" label="Edit" onClick={handleEdit} />
+      <IconButton icon="copy" label="Copy" title="Copy combatant" onClick={handleCopy} />
+      <IconButton icon="trash-2" label="Delete" title="Delete combatant" onClick={handleDelete} />
     </div>
   );
 }
@@ -503,7 +495,7 @@ export function InitiativeEditor({ sheet }: InitiativeEditorProps): UiElement {
       }}
       title="Edit initiative (reorders when a new round begins)"
     >
-      Init {displayValue}
+      {displayValue}
     </button>
   );
 }

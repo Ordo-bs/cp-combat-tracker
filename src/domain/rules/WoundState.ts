@@ -14,28 +14,28 @@ export const WOUND_STATE_LABELS: Record<WoundState, string> = {
   [WoundState.MORTAL]: "Mortally wounded",
 };
 
-/** Compact card tag. `null` means no wound tag. Mortal uses death-save penalty (0 → M0, -1 → M1). */
+/** Card wound status. Mortal uses death-save penalty (0 → Mortal 0, -1 → Mortal 1). */
 export function woundStateCardLabel(
   wound: WoundState,
   deathPenalty?: number | null,
 ): string | null {
   switch (wound) {
     case WoundState.NONE:
-      return null;
+      return "Unharmed";
     case WoundState.LIGHT:
-      return "LI";
+      return "Light";
     case WoundState.SERIOUS:
-      return "SE";
+      return "Serious";
     case WoundState.CRITICAL:
-      return "CR";
+      return "Critical";
     case WoundState.MORTAL:
       if (deathPenalty === null) {
-        return "M+";
+        return "Mortal +";
       }
       if (typeof deathPenalty === "number") {
-        return `M${-deathPenalty}`;
+        return `Mortal ${-deathPenalty}`;
       }
-      return "M";
+      return "Mortal";
     default:
       return null;
   }

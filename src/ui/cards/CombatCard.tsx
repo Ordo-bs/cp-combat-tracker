@@ -1,9 +1,10 @@
 import type { UiElement } from "../types";
 import { memo, useCallback, useRef, useState } from "react";
+import { CombatSheetType } from "../../domain/combat/CombatSheetType";
 import { isNpcSheet, isPcSheet, type CombatSheet } from "../../domain/sheets/CombatSheet";
 import { usePluginContext } from "../context/EncounterContext";
+import { IconButton, ObsidianIcon } from "../editor/EditorFields";
 import {
-  CardActions,
   InitiativeEditor,
   NpcControls,
   PcControls,
@@ -65,13 +66,26 @@ export const CombatCard = memo(function CombatCard({
   }, [expanded, collapse, closePanels]);
 
   const isDead = isNpcSheet(sheet) && sheet.damage.isDead;
+  const typeIcon = sheetTypeIcon(sheet.sheetType);
 
   return (
     <article
       className={`cp-card${isActive ? " cp-card--active" : ""}${expanded ? " cp-card--expanded" : ""}`}
     >
       <div className="cp-card__header">
-        <h3 className="cp-card__name">{sheet.name}</h3>
+        <div className="cp-card__identity">
+          <IconButton
+            className="cp-card__expand"
+            icon={expanded ? "chevron-down" : "chevron-right"}
+            label={expanded ? "Collapse" : "Expand"}
+            ariaExpanded={expanded}
+            onClick={toggleExpand}
+          />
+          <span className="cp-card__type" title={typeIcon.label} aria-label={typeIcon.label}>
+            <ObsidianIcon icon={typeIcon.icon} />
+          </span>
+          <h3 className="cp-card__name">{sheet.name}</h3>
+        </div>
         <InitiativeEditor sheet={sheet} />
       </div>
 
@@ -108,11 +122,17 @@ export const CombatCard = memo(function CombatCard({
         </div>
       )}
 
-      <CardActions
-        sheet={sheet}
-        isExpanded={expanded}
-        onToggleExpand={toggleExpand}
-      />
     </article>
   );
 });
+
+function sheetTypeIcon(sheetType: CombatSheet["sheetType"]): { icon: string; label: string } {
+  switch (sheetType) {
+    case CombatSheetType.PC:
+      return { icon: "user", label: "Player character" };
+    case CombatSheetType.NPC:
+      return { icon: "cpu", label: "NPC" };
+    case CombatSheetType.VEHICLE:
+      return { icon: "car", label: "Vehicle" };
+  }
+}
